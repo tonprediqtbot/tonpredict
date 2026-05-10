@@ -16,10 +16,12 @@ let webAppUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
 // If Railway failed to interpolate the variable, inject it manually if it exists
 if (webAppUrl.includes('${RAILWAY_PUBLIC_DOMAIN}')) {
-  if (!process.env.RAILWAY_PUBLIC_DOMAIN) {
-    throw new Error("RAILWAY_PUBLIC_DOMAIN is not set. Please click 'Generate Domain' in Railway Networking settings.");
+  if (process.env.RAILWAY_PUBLIC_DOMAIN) {
+    webAppUrl = webAppUrl.replace('${RAILWAY_PUBLIC_DOMAIN}', process.env.RAILWAY_PUBLIC_DOMAIN);
+  } else {
+    console.warn("Warning: RAILWAY_PUBLIC_DOMAIN is not set but was referenced in NEXT_PUBLIC_API_URL. Falling back to localhost.");
+    webAppUrl = 'http://localhost:3000';
   }
-  webAppUrl = webAppUrl.replace('${RAILWAY_PUBLIC_DOMAIN}', process.env.RAILWAY_PUBLIC_DOMAIN);
 }
 
 // Rate limiting middleware
@@ -102,10 +104,12 @@ let domain = process.env.RAILWAY_PUBLIC_DOMAIN
   : process.env.WEBHOOK_DOMAIN;
 
 if (domain && domain.includes('${RAILWAY_PUBLIC_DOMAIN}')) {
-  if (!process.env.RAILWAY_PUBLIC_DOMAIN) {
-    throw new Error("RAILWAY_PUBLIC_DOMAIN is not set. Please click 'Generate Domain' in Railway Networking settings, or explicitly write your domain in WEBHOOK_DOMAIN.");
+  if (process.env.RAILWAY_PUBLIC_DOMAIN) {
+    domain = domain.replace('${RAILWAY_PUBLIC_DOMAIN}', process.env.RAILWAY_PUBLIC_DOMAIN);
+  } else {
+    console.warn("Warning: RAILWAY_PUBLIC_DOMAIN is not set but was referenced in WEBHOOK_DOMAIN. Falling back to Long Polling.");
+    domain = undefined; // falsy domain disables webhooks
   }
-  domain = domain.replace('${RAILWAY_PUBLIC_DOMAIN}', process.env.RAILWAY_PUBLIC_DOMAIN);
 }
 
 if (domain) {

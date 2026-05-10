@@ -12,7 +12,15 @@ if (!token) {
 
 const bot = new Telegraf(token);
 const redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
-const webAppUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+let webAppUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+
+// If Railway failed to interpolate the variable, inject it manually if it exists
+if (webAppUrl.includes('${RAILWAY_PUBLIC_DOMAIN}')) {
+  if (!process.env.RAILWAY_PUBLIC_DOMAIN) {
+    throw new Error("RAILWAY_PUBLIC_DOMAIN is not set. Please click 'Generate Domain' in Railway Networking settings.");
+  }
+  webAppUrl = webAppUrl.replace('${RAILWAY_PUBLIC_DOMAIN}', process.env.RAILWAY_PUBLIC_DOMAIN);
+}
 
 // Rate limiting middleware
 bot.use(async (ctx, next) => {
@@ -89,9 +97,16 @@ bot.action('portfolio', (ctx) => {
 });
 
 // Evaluate Railway's dynamic variable properly
-const domain = process.env.RAILWAY_PUBLIC_DOMAIN 
+let domain = process.env.RAILWAY_PUBLIC_DOMAIN 
   ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}` 
   : process.env.WEBHOOK_DOMAIN;
+
+if (domain && domain.includes('${RAILWAY_PUBLIC_DOMAIN}')) {
+  if (!process.env.RAILWAY_PUBLIC_DOMAIN) {
+    throw new Error("RAILWAY_PUBLIC_DOMAIN is not set. Please click 'Generate Domain' in Railway Networking settings, or explicitly write your domain in WEBHOOK_DOMAIN.");
+  }
+  domain = domain.replace('${RAILWAY_PUBLIC_DOMAIN}', process.env.RAILWAY_PUBLIC_DOMAIN);
+}
 
 if (domain) {
   // Production: Use Webhooks

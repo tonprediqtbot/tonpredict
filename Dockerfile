@@ -22,6 +22,7 @@ RUN npm run build
 
 FROM base AS runner
 WORKDIR /app
+RUN apk add --no-cache libc6-compat openssl
 COPY --from=builder /app .
 
 # Define start command based on SERVICE env var

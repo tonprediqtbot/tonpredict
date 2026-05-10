@@ -88,7 +88,10 @@ bot.action('portfolio', (ctx) => {
   ]));
 });
 
-const domain = process.env.WEBHOOK_DOMAIN;
+// Evaluate Railway's dynamic variable properly
+const domain = process.env.RAILWAY_PUBLIC_DOMAIN 
+  ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}` 
+  : process.env.WEBHOOK_DOMAIN;
 
 if (domain) {
   // Production: Use Webhooks
@@ -96,8 +99,9 @@ if (domain) {
     const port = Number(process.env.PORT) || 3000;
     const webhookHandler = bot.webhookCallback('/api/webhook');
     
-    bot.telegram.setWebhook(`${domain}/api/webhook`).then(() => {
-      console.log(`Webhook set to ${domain}/api/webhook`);
+    const url = `${domain}/api/webhook`;
+    bot.telegram.setWebhook(url).then(() => {
+      console.log(`Webhook set to ${url}`);
     });
 
     const server = createServer(webhookHandler);

@@ -1,0 +1,58 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id             String        @id @default(uuid())
+  telegram_id    String        @unique
+  username       String?
+  wallet_address String?
+  referral_code  String        @unique
+  referred_by    String?
+  created_at     DateTime      @default(now())
+  bets           Bet[]
+  transactions   Transaction[]
+}
+
+model Market {
+  id           String   @id @default(uuid())
+  title        String
+  description  String
+  image_url    String?
+  category     String
+  end_time     DateTime
+  resolved     Boolean  @default(false)
+  outcome      String?  // "YES", "NO", or null
+  created_by   String   // user_id or "admin"
+  total_volume Float    @default(0)
+  created_at   DateTime @default(now())
+  bets         Bet[]
+}
+
+model Bet {
+  id         String   @id @default(uuid())
+  user_id    String
+  user       User     @relation(fields: [user_id], references: [id])
+  market_id  String
+  market     Market   @relation(fields: [market_id], references: [id])
+  side       String   // "YES" or "NO"
+  amount     Float
+  shares     Float
+  claimed    Boolean  @default(false)
+  created_at DateTime @default(now())
+}
+
+model Transaction {
+  id         String   @id @default(uuid())
+  user_id    String
+  user       User     @relation(fields: [user_id], references: [id])
+  tx_hash    String?  @unique
+  amount     Float
+  type       String   // "DEPOSIT", "WITHDRAWAL", "BET", "CLAIM"
+  created_at DateTime @default(now())
+}

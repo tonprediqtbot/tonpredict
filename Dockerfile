@@ -15,7 +15,7 @@ COPY apps/admin/package.json ./apps/admin/package.json
 COPY packages/database/package.json ./packages/database/package.json
 COPY packages/contracts/package.json ./packages/contracts/package.json
 
-RUN npm install
+RUN npm install --legacy-peer-deps
 
 FROM base AS builder
 WORKDIR /app

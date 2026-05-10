@@ -1,31 +1,22 @@
 FROM node:22-alpine AS base
 
-# Install dependencies only when needed
-FROM base AS deps
+FROM base AS builder
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
-# Install turbo
 RUN npm install turbo --global
 
-COPY package.json turbo.json ./
-COPY apps/bot/package.json ./apps/bot/package.json
-COPY apps/web/package.json ./apps/web/package.json
-COPY apps/admin/package.json ./apps/admin/package.json
-COPY packages/database/package.json ./packages/database/package.json
-COPY packages/contracts/package.json ./packages/contracts/package.json
-
-RUN npm install --legacy-peer-deps --ignore-scripts
-
-FROM base AS builder
-WORKDIR /app
-COPY --from=deps /app/node_modules ./node_modules
+# Copy all source files
 COPY . .
+
+# Install all dependencies with full context
+RUN npm install --legacy-peer-deps --ignore-scripts
 
 # Generate prisma
 WORKDIR /app/packages/database
 RUN npx prisma generate
 
+# Build all apps
 WORKDIR /app
 RUN npm run build
 

@@ -102,30 +102,39 @@ bot.action('portfolio', (ctx) => {
   ]));
 });
 
+console.log('[Config] RAW RAILWAY_PUBLIC_DOMAIN:', process.env.RAILWAY_PUBLIC_DOMAIN);
+console.log('[Config] RAW WEBHOOK_DOMAIN:', process.env.WEBHOOK_DOMAIN);
+console.log('[Config] RAW PORT:', process.env.PORT);
+
 // Evaluate Railway's dynamic variable properly
 let domain = process.env.RAILWAY_PUBLIC_DOMAIN 
   ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}` 
   : process.env.WEBHOOK_DOMAIN;
 
+console.log('[Startup] Domain evaluated before interpolation check:', domain);
+
 if (domain && domain.includes('${RAILWAY_PUBLIC_DOMAIN}')) {
   if (process.env.RAILWAY_PUBLIC_DOMAIN) {
     domain = domain.replace('${RAILWAY_PUBLIC_DOMAIN}', process.env.RAILWAY_PUBLIC_DOMAIN);
+    console.log('[Startup] Domain after interpolation replacement:', domain);
   } else {
-    console.warn("Warning: RAILWAY_PUBLIC_DOMAIN is not set but was referenced in WEBHOOK_DOMAIN. Falling back to Long Polling.");
+    console.warn("[Startup] Warning: RAILWAY_PUBLIC_DOMAIN is not set but was referenced in WEBHOOK_DOMAIN. Falling back to Long Polling.");
     domain = undefined; // falsy domain disables webhooks
   }
 }
 
 if (domain) {
   // Production: Use Webhooks
+  console.log('[Startup] Selected Mode: Webhooks');
   const port = Number(process.env.PORT) || 3000;
   const webhookHandler = bot.webhookCallback('/api/webhook');
   
   const url = `${domain}/api/webhook`;
+  console.log(`[Webhook] Attempting to set webhook to exact URL: ${url}`);
   bot.telegram.setWebhook(url).then(() => {
-    console.log(`Webhook set to ${url}`);
+    console.log(`[Webhook] Successfully set to ${url}`);
   }).catch(err => {
-    console.error('Failed to set webhook:', err.message);
+    console.error('[Webhook] Failed to set webhook. Full error:', err);
   });
 
   const server = http.createServer((req, res) => {
@@ -140,7 +149,7 @@ if (domain) {
   });
   
   server.listen(port, '0.0.0.0', () => {
-    console.log(`Bot running via Webhooks on port ${port} (Explicit IPv4 0.0.0.0)`);
+    console.log(`[Startup] Bot running via Webhooks on port ${port} (Explicit IPv4 0.0.0.0)`);
   });
 } else {
   // Local Development: Use Long Polling

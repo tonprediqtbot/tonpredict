@@ -139,8 +139,8 @@ if (domain) {
     res.end('TonBet Bot Webhook Server is running perfectly.');
   });
   
-  server.listen(port, () => {
-    console.log(`Bot running via Webhooks on port ${port} (IPv4+IPv6)`);
+  server.listen(port, '0.0.0.0', () => {
+    console.log(`Bot running via Webhooks on port ${port} (Explicit IPv4 0.0.0.0)`);
   });
 } else {
   // Local Development: Use Long Polling
@@ -151,8 +151,8 @@ if (domain) {
     res.writeHead(200);
     res.end('TonBet Bot is running via Long Polling');
   });
-  server.listen(port, () => {
-    console.log(`Fallback web server running on port ${port} (IPv4+IPv6)`);
+  server.listen(port, '0.0.0.0', () => {
+    console.log(`Fallback web server running on port ${port} (Explicit IPv4 0.0.0.0)`);
   });
 
   bot.telegram.deleteWebhook().then(() => {

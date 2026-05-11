@@ -123,8 +123,17 @@ if (domain) {
       console.log(`Webhook set to ${url}`);
     });
 
-    const server = createServer(webhookHandler);
-    server.listen(port, () => {
+    const server = createServer((req, res) => {
+      if (req.method === 'GET' && req.url === '/') {
+        res.statusCode = 200;
+        res.setHeader('Content-Type', 'text/plain');
+        res.end('TonBet Bot Webhook Server is running!');
+        return;
+      }
+      return webhookHandler(req, res);
+    });
+    
+    server.listen(port, '0.0.0.0', () => {
       console.log(`Bot running via Webhooks on port ${port}`);
     });
   });

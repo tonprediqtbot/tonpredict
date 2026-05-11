@@ -130,52 +130,15 @@ if (domain && domain.includes('${RAILWAY_PUBLIC_DOMAIN}')) {
   }
 }
 
-// FORCE LONG POLLING FOR DEBUGGING RAILWAY HEALTHCHECKS
-console.log('[Startup] FORCING LONG POLLING FOR DEBUGGING RAILWAY HEALTHCHECKS');
+const express = require('express');
+const app = express();
 
-const port = Number(process.env.PORT) || 3000;
-const app = require('express')();
+app.use(express.json());
 
-// Railway Healthcheck Route
-app.get('*', (req: any, res: any) => {
-  console.log(`[HTTP] ${req.method} ${req.url}`);
-  res.status(200).send('TonBet Bot Dummy Server is running perfectly.');
+app.use(bot.webhookCallback('/api/webhook'));
+
+app.get('/', (_: any, res: any) => {
+  res.send('TonBet Bot Running');
 });
 
-const server = app.listen(port, '0.0.0.0', () => {
-  const addr = server.address();
-  console.log(`[Startup] Dummy Express server running on port ${port}`);
-  console.log(`[Startup] ACTUAL BOUND ADDRESS:`, addr);
-  
-  // Start bot in long polling mode after server is up
-  bot.launch().then(() => {
-    console.log('[Startup] Bot started in LONG POLLING mode.');
-  }).catch(err => {
-    console.error('[Startup] Failed to start bot in long polling mode:', err);
-  });
-});
-
-// Ensure proxy keep-alive doesn't drop connections
-server.keepAliveTimeout = 65000;
-server.headersTimeout = 66000;
-
-// We explicitly delete the webhook to ensure Telegram sends messages via long polling
-bot.telegram.deleteWebhook().then(() => {
-  console.log('[Webhook] Successfully deleted webhook for long polling.');
-}).catch(err => {
-  console.error('[Webhook] Failed to delete webhook:', err);
-});
-
-// Graceful stop
-const stopBot = (signal: string) => {
-  try {
-    bot.stop(signal);
-  } catch (err) {
-    // Telegraf throws if stop() is called without launch()
-  }
-  console.log(`Bot stopped gracefully (${signal})`);
-  process.exit(0);
-};
-
-process.once('SIGINT', () => stopBot('SIGINT'));
-process.once('SIGTERM', () => stopBot('SIGTERM'));
+app.listen(process.env.PORT || 8080);

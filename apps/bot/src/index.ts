@@ -128,7 +128,10 @@ async function startServer() {
   const app = express();
   app.use(express.json());
 
-  app.get('/health', (_: any, res: any) => res.status(200).send('OK'));
+  app.get('/health', (_: any, res: any) => {
+    console.log('[Health] Heartbeat check received');
+    res.status(200).send('OK');
+  });
   app.get('/', (_: any, res: any) => res.status(200).send('TonBet Bot Online'));
   app.post('/webhook', bot.webhookCallback('/webhook'));
   
@@ -136,7 +139,7 @@ async function startServer() {
     res.status(200).send('OK');
   });
 
-  const port = process.env.PORT || 8080;
+  const port = 8080;
   const server = app.listen(port, '0.0.0.0', async () => {
     console.log(`[Final] Bot Server Online on 0.0.0.0:${port}`);
     

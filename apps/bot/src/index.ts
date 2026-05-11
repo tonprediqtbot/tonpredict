@@ -128,10 +128,12 @@ async function startServer() {
   const app = express();
   app.use(express.json());
 
+  // Health check should be ready ASAP
   app.get('/health', (_: any, res: any) => {
     console.log('[Health] Heartbeat check received');
     res.status(200).send('OK');
   });
+
   app.get('/', (_: any, res: any) => res.status(200).send('TonBet Bot Online'));
   app.post('/webhook', bot.webhookCallback('/webhook'));
   
@@ -145,10 +147,10 @@ async function startServer() {
     
     // Auto-update Webhook
     const domain = process.env.WEBHOOK_DOMAIN || `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`;
-    if (domain && domain !== 'https://undefined') {
+    if (domain && domain !== 'https://undefined' && domain !== 'https://') {
       try {
         await bot.telegram.setWebhook(`${domain}/webhook`);
-        console.log('[Webhook] Telegram synced successfully');
+        console.log(`[Webhook] Telegram synced: ${domain}/webhook`);
       } catch (e: any) {
         console.error('[Webhook] Sync Failed:', e.message);
       }

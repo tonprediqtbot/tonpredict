@@ -1,11 +1,29 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { TonConnectButton } from "@tonconnect/ui-react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { TrendingUp, Activity, Trophy, Users } from "lucide-react";
+import { getMarkets } from "@/lib/actions";
+
 
 export default function Home() {
+  const [trendingMarkets, setTrendingMarkets] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function load() {
+      const res = await getMarkets();
+      if (res.success) {
+        // Just show first 2 as trending for now
+        setTrendingMarkets(res.data?.slice(0, 2) || []);
+      }
+      setLoading(false);
+    }
+    load();
+  }, []);
+
   return (
     <main className="min-h-screen p-4 flex flex-col max-w-md mx-auto relative overflow-hidden">
       {/* Background glow */}
@@ -45,56 +63,44 @@ export default function Home() {
       </h3>
 
       <div className="space-y-4 mb-24">
-        {/* Mock Market Card */}
-        <motion.div 
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.1 }}
-          className="glass-panel p-4 rounded-xl border border-white/5 hover:border-white/10 transition cursor-pointer"
-        >
-          <div className="flex justify-between items-start mb-3">
-            <div>
-              <span className="text-xs font-medium text-neon-purple bg-neon-purple/10 px-2 py-1 rounded-full">Crypto</span>
-              <h4 className="font-semibold mt-2 text-sm">Will TON reach $10 before 2025?</h4>
-            </div>
-            <div className="text-right">
-              <span className="text-xs text-gray-400">Vol: 12.5K TON</span>
-            </div>
+        {loading ? (
+          <div className="py-10 flex justify-center">
+             <div className="w-6 h-6 border-2 border-neon-blue border-t-transparent rounded-full animate-spin"></div>
           </div>
-          
-          <div className="flex gap-2">
-            <button className="flex-1 bg-neon-green/10 text-neon-green border border-neon-green/30 py-2 rounded-lg text-sm font-semibold hover:bg-neon-green/20 transition">
-              YES 75%
-            </button>
-            <button className="flex-1 bg-red-500/10 text-red-500 border border-red-500/30 py-2 rounded-lg text-sm font-semibold hover:bg-red-500/20 transition">
-              NO 25%
-            </button>
+        ) : trendingMarkets.length === 0 ? (
+          <div className="py-10 text-center text-gray-500 text-sm italic">
+            No active markets available.
           </div>
-        </motion.div>
-
-        {/* Mock Market Card 2 */}
-        <motion.div 
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.2 }}
-          className="glass-panel p-4 rounded-xl border border-white/5 hover:border-white/10 transition cursor-pointer"
-        >
-          <div className="flex justify-between items-start mb-3">
-            <div>
-              <span className="text-xs font-medium text-neon-blue bg-neon-blue/10 px-2 py-1 rounded-full">Sports</span>
-              <h4 className="font-semibold mt-2 text-sm">Who will win the Champions League 2024?</h4>
-            </div>
-            <div className="text-right">
-              <span className="text-xs text-gray-400">Vol: 45.2K TON</span>
-            </div>
-          </div>
-          
-          <div className="flex gap-2">
-            <button className="flex-1 bg-white/5 border border-white/10 py-2 rounded-lg text-sm font-semibold hover:bg-white/10 transition">
-              View Odds
-            </button>
-          </div>
-        </motion.div>
+        ) : (
+          trendingMarkets.map((market, i) => (
+            <motion.div 
+              key={market.id}
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: i * 0.1 }}
+              className="glass-panel p-4 rounded-xl border border-white/5 hover:border-white/10 transition cursor-pointer"
+            >
+              <div className="flex justify-between items-start mb-3">
+                <div>
+                  <span className="text-[10px] font-bold text-neon-purple bg-neon-purple/10 px-2 py-0.5 rounded uppercase">{market.category}</span>
+                  <h4 className="font-semibold mt-2 text-sm">{market.title}</h4>
+                </div>
+                <div className="text-right">
+                  <span className="text-[10px] text-gray-500">{market.total_volume} TON</span>
+                </div>
+              </div>
+              
+              <div className="flex gap-2">
+                <button className="flex-1 bg-neon-green/10 text-neon-green border border-neon-green/30 py-2 rounded-lg text-xs font-bold hover:bg-neon-green/20 transition">
+                  YES
+                </button>
+                <button className="flex-1 bg-red-500/10 text-red-500 border border-red-500/30 py-2 rounded-lg text-xs font-bold hover:bg-red-500/20 transition">
+                  NO
+                </button>
+              </div>
+            </motion.div>
+          ))
+        )}
       </div>
 
       {/* Bottom Navigation */}
@@ -129,3 +135,4 @@ export default function Home() {
     </main>
   );
 }
+

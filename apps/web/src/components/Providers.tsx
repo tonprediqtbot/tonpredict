@@ -20,7 +20,8 @@ export default function Providers({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <TonConnectUIProvider manifestUrl="https://tonbet.vercel.app/tonconnect-manifest.json">
+    <TonConnectUIProvider manifestUrl="https://tonbetweb-production.up.railway.app/tonconnect-manifest.json">
+
       {children}
     </TonConnectUIProvider>
   );

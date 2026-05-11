@@ -1,7 +1,7 @@
 {
-  "url": "https://tonbet.vercel.app",
+  "url": "https://tonbetweb-production.up.railway.app",
   "name": "TonBet",
-  "iconUrl": "https://tonbet.vercel.app/icon.png",
-  "termsOfUseUrl": "https://tonbet.vercel.app/terms",
-  "privacyPolicyUrl": "https://tonbet.vercel.app/privacy"
+  "iconUrl": "https://tonbetweb-production.up.railway.app/icon.png",
+  "termsOfUseUrl": "https://tonbetweb-production.up.railway.app/terms",
+  "privacyPolicyUrl": "https://tonbetweb-production.up.railway.app/privacy"
 }

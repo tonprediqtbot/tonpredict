@@ -129,6 +129,7 @@ if (domain) {
   });
 
   const server = http.createServer((req, res) => {
+    console.log(`[HTTP] ${req.method} ${req.url}`);
     if (req.url === '/api/webhook' && req.method === 'POST') {
       return webhookHandler(req, res);
     }
@@ -146,6 +147,7 @@ if (domain) {
   // Railway requires a port to be bound even if we are polling, otherwise it throws 502
   const port = Number(process.env.PORT) || 3000;
   const server = http.createServer((req, res) => {
+    console.log(`[HTTP Fallback] ${req.method} ${req.url}`);
     res.writeHead(200);
     res.end('TonBet Bot is running via Long Polling');
   });

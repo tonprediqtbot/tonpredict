@@ -115,12 +115,26 @@ if (domain && domain.includes('${RAILWAY_PUBLIC_DOMAIN}')) {
 const express = require('express');
 const app = express();
 
-app.use(express.json());
-
-app.use(bot.webhookCallback('/api/webhook'));
-
-app.get('/', (_: any, res: any) => {
-  res.send('TonBet Bot Running');
+// Log every incoming HTTP request for debugging Railway Healthchecks
+app.use((req: any, res: any, next: any) => {
+  console.log(`[HTTP] ${req.method} ${req.url}`);
+  next();
 });
 
-app.listen(process.env.PORT || 8080);
+app.use(express.json());
+
+// Handle Webhooks
+app.use(bot.webhookCallback('/api/webhook'));
+
+// Catch-all route to guarantee 200 OK for ANY healthcheck path configured in Railway
+app.all('*', (req: any, res: any) => {
+  res.status(200).send('TonBet Bot Running OK');
+});
+
+const server = app.listen(process.env.PORT || 8080, '0.0.0.0', () => {
+  console.log(`[Startup] Express server bound to port ${process.env.PORT || 8080}`);
+});
+
+// Required for Railway Edge Proxy
+server.keepAliveTimeout = 65000;
+server.headersTimeout = 66000;

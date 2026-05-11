@@ -74,12 +74,13 @@ bot.start(async (ctx) => {
         [Markup.button.url('Join Community 👥', 'https://t.me/tonbet_community')]
       ])
     );
-  } catch (error) {
+  } catch (error: any) {
     console.error('[Database] Sync Error:', error);
-    await ctx.reply("Welcome back to TonBet! 🚀\n\nClick the button below to open the app and start predicting.", 
+    await ctx.reply(`⚠️ Database Error: ${error.message}\n\nWelcome back to TonBet! 🚀\n\nClick below to open the app.`, 
       Markup.inlineKeyboard([[Markup.button.webApp('Launch TonBet 📱', webAppUrl)]])
     );
   }
+
 });
 
 // Command: /markets

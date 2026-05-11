@@ -8,8 +8,20 @@ import { BottomNav } from "@/components/BottomNav";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "TonBet | Premium Prediction Markets",
-  description: "Trade on world events, sports, and crypto using TON.",
+  title: "TonBet | Professional Prediction Markets on TON",
+  description: "Predict on world events, sports, and crypto markets with high liquidity and security on the TON blockchain.",
+  keywords: ["TON", "Telegram", "Prediction Markets", "Crypto", "Betting", "DeFi"],
+  openGraph: {
+    title: "TonBet | The Future is Tradable",
+    description: "The world's most liquid prediction market on TON. Real events. Real payouts.",
+    type: "website",
+    url: "https://tonbet.app",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "TonBet | Prediction Markets on TON",
+    description: "Real events. Real payouts. Secure and fast on the TON blockchain.",
+  },
   manifest: "/manifest.json",
 };
 

@@ -91,19 +91,33 @@ async function startServer() {
   });
 
   app.get('/health', (_: any, res: any) => res.status(200).send('OK'));
-  app.post('/api/webhook', bot.webhookCallback('/api/webhook'));
+  app.post('/webhook', bot.webhookCallback('/webhook'));
   app.get('/', (_: any, res: any) => res.status(200).send('TonBet Bot Running'));
   app.use((req: any, res: any) => res.status(200).send('OK'));
 
   const port = process.env.PORT || 8080;
-  const server = app.listen(port, () => {
+  const server = app.listen(port, '0.0.0.0', async () => {
     console.log(`[Final] Bot Server listening on port ${port}`);
     
+    // Automatically update Telegram Webhook on startup
+    const domain = process.env.WEBHOOK_DOMAIN || `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`;
+    if (domain && domain !== 'https://undefined') {
+      const webhookUrl = `${domain}/webhook`;
+      console.log(`[Webhook] Setting Telegram webhook to: ${webhookUrl}`);
+      try {
+        await bot.telegram.setWebhook(webhookUrl);
+        console.log('[Webhook] Telegram webhook updated successfully');
+      } catch (e: any) {
+        console.error('[Webhook] Failed to set Telegram webhook:', e.message);
+      }
+    }
+
     // Heartbeat to prove lifecycle stability
     setInterval(() => {
       console.log(`[Heartbeat] ${new Date().toISOString()} - Memory: ${Math.round(process.memoryUsage().heapUsed / 1024 / 1024)}MB`);
     }, 10000);
   });
+
 
   const stopBot = (signal: string) => {
     console.log(`[Shutdown] ${signal}`);

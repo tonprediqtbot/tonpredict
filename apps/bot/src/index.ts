@@ -129,13 +129,13 @@ if (domain) {
     });
 
     const server = createServer((req, res) => {
-      if (req.method === 'GET' && req.url === '/') {
-        res.statusCode = 200;
-        res.setHeader('Content-Type', 'text/plain');
-        res.end('TonBet Bot Webhook Server is running!');
-        return;
+      if (req.url === '/api/webhook' && req.method === 'POST') {
+        return webhookHandler(req, res);
       }
-      return webhookHandler(req, res);
+      
+      // Respond 200 OK to ALL other requests (Railway HTTP/TCP health checks, browsers, etc.)
+      res.writeHead(200, { 'Content-Type': 'text/plain' });
+      res.end('TonBet Bot Webhook Server is running perfectly.');
     });
     
     server.listen(port, '0.0.0.0', () => {

@@ -136,8 +136,8 @@ app.use((req: any, res: any) => {
   res.status(200).send('TonBet Bot Running OK');
 });
 
-const server = app.listen(process.env.PORT || 8080, '0.0.0.0', () => {
-  console.log(`[Startup] Express server bound to port ${process.env.PORT || 8080}`);
+const server = app.listen(process.env.PORT || 8080, '::', () => {
+  console.log(`[Startup] Express server bound to port ${process.env.PORT || 8080} (Dual-Stack IPv6/IPv4)`);
 });
 
 // Required for Railway Edge Proxy

@@ -1,138 +1,103 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { TonConnectButton } from "@tonconnect/ui-react";
+import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import Link from "next/link";
-import { TrendingUp, Activity, Trophy, Users } from "lucide-react";
+import { TrendingUp, Search, Filter, Trophy, Zap } from "lucide-react";
 import { getMarkets } from "@/lib/actions";
-
+import { MarketCard } from "@/components/MarketCard";
+import { Button } from "@/components/ui/button";
+import { useState } from "react";
 
 export default function Home() {
-  const [trendingMarkets, setTrendingMarkets] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState("all");
 
-  useEffect(() => {
-    async function load() {
+  const { data: markets, isLoading } = useQuery({
+    queryKey: ["markets"],
+    queryFn: async () => {
       const res = await getMarkets();
-      if (res.success) {
-        // Just show first 2 as trending for now
-        setTrendingMarkets(res.data?.slice(0, 2) || []);
-      }
-      setLoading(false);
-    }
-    load();
-  }, []);
+      return res.data || [];
+    },
+  });
 
   return (
-    <main className="min-h-screen p-4 flex flex-col max-w-md mx-auto relative overflow-hidden">
-      {/* Background glow */}
-      <div className="absolute top-[-10%] left-[-10%] w-[120%] h-[120%] bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-neon-purple/20 via-black to-black -z-10 blur-3xl"></div>
-      
-      <header className="flex justify-between items-center mb-8 pt-4">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-neon-blue to-neon-purple flex items-center justify-center font-bold text-white shadow-[0_0_15px_rgba(157,0,255,0.5)]">
-            T
+    <div className="space-y-8">
+      {/* Hero Section */}
+      <section className="relative overflow-hidden rounded-[2rem] bg-gradient-to-br from-neon-blue/20 via-background to-neon-purple/20 p-8 border border-white/5">
+        <div className="absolute -left-10 -top-10 h-40 w-40 rounded-full bg-neon-blue/10 blur-3xl"></div>
+        <div className="relative z-10">
+          <div className="mb-4 flex items-center gap-2">
+            <div className="flex h-6 w-6 items-center justify-center rounded-full bg-neon-blue/20">
+              <Zap className="h-3 w-3 text-neon-blue" />
+            </div>
+            <span className="text-[10px] font-bold uppercase tracking-widest text-neon-blue">Live Predictions</span>
           </div>
-          <h1 className="text-xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400">TonBet</h1>
+          <h1 className="mb-4 text-4xl font-extrabold tracking-tight">
+            The Future <br />
+            <span className="bg-gradient-to-r from-neon-blue to-neon-purple bg-clip-text text-transparent">is Tradable.</span>
+          </h1>
+          <p className="mb-8 text-sm text-muted-foreground leading-relaxed">
+            Join the world's most liquid prediction market on TON. Real events. Real payouts.
+          </p>
+          <div className="flex gap-3">
+            <Button size="lg" className="rounded-xl px-8 shadow-xl shadow-primary/20">Start Trading</Button>
+            <Button variant="neon" size="lg" className="rounded-xl">Leaderboard</Button>
+          </div>
         </div>
-        <TonConnectButton />
-      </header>
-
-      <section className="mb-10">
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="glass-panel p-6 rounded-2xl relative overflow-hidden"
-        >
-          <div className="absolute top-0 right-0 w-32 h-32 bg-neon-blue/20 blur-2xl -z-10 rounded-full translate-x-1/2 -translate-y-1/2"></div>
-          <h2 className="text-3xl font-bold mb-2">Predict & Win</h2>
-          <p className="text-gray-400 mb-6 text-sm">Trade shares on the world's most anticipated events directly from Telegram.</p>
-          
-          <Link href="/markets" className="block w-full">
-            <button className="w-full bg-white text-black font-semibold py-3 rounded-xl hover:bg-gray-100 transition shadow-[0_0_20px_rgba(255,255,255,0.3)]">
-              Explore Markets
-            </button>
-          </Link>
-        </motion.div>
       </section>
 
-      <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-        <TrendingUp className="w-5 h-5 text-neon-blue" />
-        Trending Now
-      </h3>
-
-      <div className="space-y-4 mb-24">
-        {loading ? (
-          <div className="py-10 flex justify-center">
-             <div className="w-6 h-6 border-2 border-neon-blue border-t-transparent rounded-full animate-spin"></div>
-          </div>
-        ) : trendingMarkets.length === 0 ? (
-          <div className="py-10 text-center text-gray-500 text-sm italic">
-            No active markets available.
-          </div>
-        ) : (
-          trendingMarkets.map((market, i) => (
-            <motion.div 
-              key={market.id}
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: i * 0.1 }}
-              className="glass-panel p-4 rounded-xl border border-white/5 hover:border-white/10 transition cursor-pointer"
-            >
-              <div className="flex justify-between items-start mb-3">
-                <div>
-                  <span className="text-[10px] font-bold text-neon-purple bg-neon-purple/10 px-2 py-0.5 rounded uppercase">{market.category}</span>
-                  <h4 className="font-semibold mt-2 text-sm">{market.title}</h4>
-                </div>
-                <div className="text-right">
-                  <span className="text-[10px] text-gray-500">{market.total_volume} TON</span>
-                </div>
-              </div>
-              
-              <div className="flex gap-2">
-                <button className="flex-1 bg-neon-green/10 text-neon-green border border-neon-green/30 py-2 rounded-lg text-xs font-bold hover:bg-neon-green/20 transition">
-                  YES
-                </button>
-                <button className="flex-1 bg-red-500/10 text-red-500 border border-red-500/30 py-2 rounded-lg text-xs font-bold hover:bg-red-500/20 transition">
-                  NO
-                </button>
-              </div>
-            </motion.div>
-          ))
-        )}
+      {/* Stats Quick Look */}
+      <div className="grid grid-cols-2 gap-4">
+        <div className="glass-panel rounded-2xl p-4 border border-white/5">
+          <span className="text-[10px] font-medium text-muted-foreground uppercase">24h Volume</span>
+          <p className="text-lg font-bold text-neon-green mt-1">1.2M TON</p>
+        </div>
+        <div className="glass-panel rounded-2xl p-4 border border-white/5">
+          <span className="text-[10px] font-medium text-muted-foreground uppercase">Active Traders</span>
+          <p className="text-lg font-bold text-neon-blue mt-1">45.8K</p>
+        </div>
       </div>
 
-      {/* Bottom Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 glass border-t border-white/10 p-4 max-w-md mx-auto z-50">
-        <ul className="flex justify-between items-center px-4">
-          <li>
-            <Link href="/" className="flex flex-col items-center gap-1 text-neon-blue">
-              <Activity className="w-5 h-5" />
-              <span className="text-[10px] font-medium">Home</span>
-            </Link>
-          </li>
-          <li>
-            <Link href="/markets" className="flex flex-col items-center gap-1 text-gray-400 hover:text-white transition">
-              <TrendingUp className="w-5 h-5" />
-              <span className="text-[10px] font-medium">Markets</span>
-            </Link>
-          </li>
-          <li>
-            <Link href="/leaderboard" className="flex flex-col items-center gap-1 text-gray-400 hover:text-white transition">
-              <Trophy className="w-5 h-5" />
-              <span className="text-[10px] font-medium">Rankings</span>
-            </Link>
-          </li>
-          <li>
-            <Link href="/profile" className="flex flex-col items-center gap-1 text-gray-400 hover:text-white transition">
-              <Users className="w-5 h-5" />
-              <span className="text-[10px] font-medium">Profile</span>
-            </Link>
-          </li>
-        </ul>
-      </nav>
-    </main>
+      {/* Filter Tabs */}
+      <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-2">
+        {["all", "crypto", "sports", "tech", "politics"].map((tab) => (
+          <button
+            key={tab}
+            onClick={() => setActiveTab(tab)}
+            className={`rounded-full px-5 py-2 text-xs font-bold uppercase tracking-tighter transition-all ${
+              activeTab === tab
+                ? "bg-primary text-white shadow-lg shadow-primary/20"
+                : "bg-white/5 text-muted-foreground hover:bg-white/10"
+            }`}
+          >
+            {tab}
+          </button>
+        ))}
+      </div>
+
+      {/* Market Grid */}
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <h2 className="flex items-center gap-2 text-xl font-bold tracking-tight">
+            <TrendingUp className="h-5 w-5 text-neon-blue" />
+            Active Markets
+          </h2>
+          <Button variant="ghost" size="sm" className="text-xs text-muted-foreground font-bold">VIEW ALL</Button>
+        </div>
+
+        {isLoading ? (
+          <div className="grid gap-6">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="h-48 w-full animate-pulse rounded-3xl bg-white/5"></div>
+            ))}
+          </div>
+        ) : (
+          <div className="grid gap-6">
+            {markets?.map((market: any, i: number) => (
+              <MarketCard key={market.id} market={market} index={i} />
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
-

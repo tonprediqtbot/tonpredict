@@ -1,12 +1,24 @@
+import type { Metadata, Viewport } from "next";
+import { Inter } from "next/font/google";
 import "./globals.css";
 import Providers from "@/components/Providers";
-import type { Metadata } from "next";
+import { Navbar } from "@/components/Navbar";
+import { BottomNav } from "@/components/BottomNav";
 
-import Script from "next/script";
+const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "TonBet | The Premier Prediction Market",
-  description: "Predict outcomes, trade shares, and earn TON on the leading prediction market platform.",
+  title: "TonBet | Premium Prediction Markets",
+  description: "Trade on world events, sports, and crypto using TON.",
+  manifest: "/manifest.json",
+};
+
+export const viewport: Viewport = {
+  themeColor: "#000000",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
 };
 
 export default function RootLayout({
@@ -15,13 +27,16 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className="dark">
-      <head>
-        <Script src="https://telegram.org/js/telegram-web-app.js" strategy="beforeInteractive" />
-      </head>
-      <body className="min-h-screen bg-black text-white antialiased">
+    <html lang="en" suppressHydrationWarning>
+      <body className={`${inter.className} bg-background text-foreground antialiased selection:bg-neon-purple/30`}>
         <Providers>
-          {children}
+          <div className="relative flex min-h-screen flex-col max-w-md mx-auto border-x border-white/5 bg-background shadow-2xl">
+            <Navbar />
+            <main className="flex-1 px-4 py-6 pb-32">
+              {children}
+            </main>
+            <BottomNav />
+          </div>
         </Providers>
       </body>
     </html>

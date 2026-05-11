@@ -145,28 +145,29 @@ if (domain) {
     console.error('[Webhook] Failed to set webhook. Full error:', err);
   });
 
-  const server = http.createServer((req, res) => {
-    console.log(`[HTTP] ${req.method} ${req.url}`);
-    if (req.url === '/api/webhook' && req.method === 'POST') {
-      return webhookHandler(req, res);
-    }
-    res.writeHead(200, { 'Content-Type': 'text/plain' });
-    res.end('TonBet Bot Webhook Server is running perfectly.');
-  });
-  
-  // Ensure proxy keep-alive doesn't drop connections (required for Railway Edge Router)
-  server.keepAliveTimeout = 65000;
-  server.headersTimeout = 66000;
+  const app = require('express')();
 
-  server.on('error', (err) => {
-    console.error('[HTTP ERROR]', err);
+  // Railway Healthcheck Route
+  app.get('/', (req: any, res: any) => {
+    res.status(200).send('TonBet Bot Webhook Server is running perfectly.');
   });
   
-  server.listen(port, '0.0.0.0', () => {
+  app.get('/health', (req: any, res: any) => {
+    res.status(200).send('OK');
+  });
+
+  // Telegraf Webhook Route
+  app.use(bot.webhookCallback('/api/webhook'));
+
+  const server = app.listen(port, '0.0.0.0', () => {
     const addr = server.address();
-    console.log(`[Startup] Bot running via Webhooks on port ${port} (Explicit IPv4 0.0.0.0)`);
+    console.log(`[Startup] Bot running via Express Webhooks on port ${port}`);
     console.log(`[Startup] ACTUAL BOUND ADDRESS:`, addr);
   });
+  
+  // Ensure proxy keep-alive doesn't drop connections
+  server.keepAliveTimeout = 65000;
+  server.headersTimeout = 66000;
 } else {
   // Local Development: Use Long Polling
   // Railway requires a port to be bound even if we are polling, otherwise it throws 502

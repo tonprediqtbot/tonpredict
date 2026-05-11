@@ -103,9 +103,14 @@ bot.action('portfolio', (ctx) => {
 });
 
 // Evaluate Railway's dynamic variable properly
+console.log(`[Config] RAILWAY_PUBLIC_DOMAIN = ${process.env.RAILWAY_PUBLIC_DOMAIN ?? '(not set)'}`);
+console.log(`[Config] WEBHOOK_DOMAIN = ${process.env.WEBHOOK_DOMAIN ?? '(not set)'}`);
+
 let domain = process.env.RAILWAY_PUBLIC_DOMAIN 
   ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}` 
   : process.env.WEBHOOK_DOMAIN;
+
+console.log(`[Config] domain (before interpolation check) = ${domain ?? '(not set)'}`);
 
 if (domain && domain.includes('${RAILWAY_PUBLIC_DOMAIN}')) {
   if (process.env.RAILWAY_PUBLIC_DOMAIN) {
@@ -116,16 +121,21 @@ if (domain && domain.includes('${RAILWAY_PUBLIC_DOMAIN}')) {
   }
 }
 
+console.log(`[Config] domain (final) = ${domain ?? '(not set)'}`);
+
 if (domain) {
   // Production: Use Webhooks
   const port = Number(process.env.PORT) || 3000;
+  console.log(`[Config] PORT = ${port}`);
+  console.log('[Startup] Mode: Webhooks');
   const webhookHandler = bot.webhookCallback('/api/webhook');
   
   const url = `${domain}/api/webhook`;
+  console.log(`[Webhook] Registering webhook URL: ${url}`);
   bot.telegram.setWebhook(url).then(() => {
-    console.log(`Webhook set to ${url}`);
+    console.log(`[Webhook] Successfully set webhook to: ${url}`);
   }).catch(err => {
-    console.error('Failed to set webhook:', err.message);
+    console.error(`[Webhook] Failed to set webhook to ${url} — ${err.message}`, err);
   });
 
   const server = http.createServer((req, res) => {
@@ -146,6 +156,8 @@ if (domain) {
   // Local Development: Use Long Polling
   // Railway requires a port to be bound even if we are polling, otherwise it throws 502
   const port = Number(process.env.PORT) || 3000;
+  console.log(`[Config] PORT = ${port}`);
+  console.log('[Startup] Mode: Long Polling (domain was not set — RAILWAY_PUBLIC_DOMAIN and WEBHOOK_DOMAIN are both missing)');
   const server = http.createServer((req, res) => {
     console.log(`[HTTP Fallback] ${req.method} ${req.url}`);
     res.writeHead(200);

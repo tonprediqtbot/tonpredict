@@ -1,6 +1,5 @@
 generator client {
-  provider      = "prisma-client-js"
-  binaryTargets = ["native", "linux-musl", "linux-musl-openssl-3.0.x"]
+  provider = "prisma-client-js"
 }
 
 datasource db {
@@ -9,51 +8,134 @@ datasource db {
 }
 
 model User {
-  id             String        @id @default(uuid())
-  telegram_id    String        @unique
+  id             String         @id @default(cuid())
+  telegram_id    String         @unique
   username       String?
-  wallet_address String?
-  referral_code  String        @unique
+  wallet_address String?        @unique
+  referral_code  String         @unique
   referred_by    String?
-  created_at     DateTime      @default(now())
+  points         Int            @default(0)
+  created_at     DateTime       @default(now())
+  updated_at     DateTime       @updatedAt
+  
+  markets        Market[]       @relation("CreatedMarkets")
   bets           Bet[]
+  positions      Position[]
   transactions   Transaction[]
+  notifications  Notification[]
+  adminActions   AdminAction[]
+  referrals      User[]         @relation("ReferralTree")
+  referrer       User?          @relation("ReferralTree", fields: [referred_by], references: [id])
 }
 
 model Market {
-  id           String   @id @default(uuid())
-  title        String
-  description  String
-  image_url    String?
-  category     String
-  end_time     DateTime
-  resolved     Boolean  @default(false)
-  outcome      String?  // "YES", "NO", or null
-  created_by   String   // user_id or "admin"
-  total_volume Float    @default(0)
-  created_at   DateTime @default(now())
-  bets         Bet[]
+  id                String       @id @default(cuid())
+  title             String
+  description       String
+  image             String?
+  category          String
+  creatorId         String
+  creator           User         @relation("CreatedMarkets", fields: [creatorId], references: [id])
+  
+  // Betting Pools (CPMM/LMSR)
+  liquidity         Decimal      @default(0) @db.Decimal(20, 9)
+  yesPool           Decimal      @default(0) @db.Decimal(20, 9)
+  noPool            Decimal      @default(0) @db.Decimal(20, 9)
+  totalVolume       Decimal      @default(0) @db.Decimal(20, 9)
+  
+  resolutionSource  String
+  endDate           DateTime
+  resolved          Boolean      @default(false)
+  outcome           String?      // "YES" or "NO"
+  
+  created_at        DateTime     @default(now())
+  updated_at        DateTime     @updatedAt
+
+  bets              Bet[]
+  positions         Position[]
+  comments          Comment[]
+  resolution        MarketResolution?
 }
 
 model Bet {
-  id         String   @id @default(uuid())
-  user_id    String
-  user       User     @relation(fields: [user_id], references: [id])
-  market_id  String
-  market     Market   @relation(fields: [market_id], references: [id])
+  id         String   @id @default(cuid())
+  marketId   String
+  userId     String
   side       String   // "YES" or "NO"
-  amount     Float
-  shares     Float
-  claimed    Boolean  @default(false)
+  amount     Decimal  @db.Decimal(20, 9) // TON amount
+  shares     Decimal  @db.Decimal(20, 9) // Number of shares bought
+  txHash     String?  @unique
   created_at DateTime @default(now())
+
+  market     Market   @relation(fields: [marketId], references: [id])
+  user       User     @relation(fields: [userId], references: [id])
+}
+
+model Position {
+  id        String   @id @default(cuid())
+  userId    String
+  marketId  String
+  side      String   // "YES" or "NO"
+  shares    Decimal  @db.Decimal(20, 9)
+  avgPrice  Decimal  @db.Decimal(20, 9)
+  
+  user      User     @relation(fields: [userId], references: [id])
+  market    Market   @relation(fields: [marketId], references: [id])
+
+  @@unique([userId, marketId, side])
 }
 
 model Transaction {
-  id         String   @id @default(uuid())
-  user_id    String
-  user       User     @relation(fields: [user_id], references: [id])
-  tx_hash    String?  @unique
-  amount     Float
-  type       String   // "DEPOSIT", "WITHDRAWAL", "BET", "CLAIM"
+  id         String   @id @default(cuid())
+  userId     String
+  type       String   // "BET", "WITHDRAW", "DEPOSIT", "CLAIM"
+  amount     Decimal  @db.Decimal(20, 9)
+  status     String   // "PENDING", "COMPLETED", "FAILED"
+  txHash     String?  @unique
   created_at DateTime @default(now())
+
+  user       User     @relation(fields: [userId], references: [id])
+}
+
+model Comment {
+  id         String   @id @default(cuid())
+  marketId   String
+  userId     String
+  content    String
+  created_at DateTime @default(now())
+
+  market     Market   @relation(fields: [marketId], references: [id])
+}
+
+model Notification {
+  id         String   @id @default(cuid())
+  userId     String
+  title      String
+  message    String
+  read       Boolean  @default(false)
+  created_at DateTime @default(now())
+
+  user       User     @relation(fields: [userId], references: [id])
+}
+
+model MarketResolution {
+  id           String   @id @default(cuid())
+  marketId     String   @unique
+  resolvedBy   String
+  outcome      String
+  evidenceUrl  String?
+  resolvedAt   DateTime @default(now())
+
+  market       Market   @relation(fields: [marketId], references: [id])
+}
+
+model AdminAction {
+  id         String   @id @default(cuid())
+  adminId    String
+  action     String
+  targetType String
+  targetId   String
+  created_at DateTime @default(now())
+
+  admin      User     @relation(fields: [adminId], references: [id])
 }

@@ -1,18 +1,49 @@
 "use client";
 
 import { useState } from "react";
-import { motion } from "framer-motion";
-import { ShieldCheck, Database, LayoutDashboard, BarChart3, AlertCircle, CheckCircle2, XCircle } from "lucide-react";
+import { ShieldCheck, Database, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { getMarkets } from "@/lib/actions";
+import { toast } from "sonner";
 
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState("markets");
+  const queryClient = useQueryClient();
 
-  const stats = [
-    { label: "Total TVL", value: "4.2M TON", trend: "+12%" },
-    { label: "Daily Revenue", value: "12.5K TON", trend: "+5%" },
-    { label: "New Users", value: "1.2K", trend: "+18%" },
-  ];
+  const { data: markets, isLoading } = useQuery({
+    queryKey: ["admin_markets"],
+    queryFn: async () => {
+      const res = await getMarkets();
+      return res.data || [];
+    },
+  });
+
+  const resolveMutation = useMutation({
+    mutationFn: async ({ marketId, outcome }: { marketId: string, outcome: string }) => {
+      const response = await fetch("/api/market/resolve", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          marketId,
+          outcome,
+          adminId: "platform-admin", // Replace with real admin session
+          evidenceUrl: "https://tonbet.app/resolution-evidence"
+        }),
+      });
+      if (!response.ok) throw new Error("Failed to resolve market");
+      return response.json();
+    },
+    onSuccess: () => {
+      toast.success("Market resolved successfully!");
+      queryClient.invalidateQueries({ queryKey: ["admin_markets"] });
+    },
+    onError: (err: any) => {
+      toast.error(err.message);
+    }
+  });
+
+  if (isLoading) return <div className="p-10 text-center">Loading Console...</div>;
 
   return (
     <div className="space-y-8 pb-10">
@@ -26,17 +57,6 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* Global Admin Stats */}
-      <div className="grid grid-cols-3 gap-4">
-        {stats.map((stat, i) => (
-          <div key={i} className="glass-panel rounded-2xl p-4 border border-neon-green/10 bg-neon-green/5">
-            <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">{stat.label}</span>
-            <p className="mt-1 text-sm font-black text-foreground">{stat.value}</p>
-            <span className="text-[10px] font-bold text-neon-green">{stat.trend}</span>
-          </div>
-        ))}
-      </div>
-
       {/* Admin Nav */}
       <div className="flex items-center gap-4 border-b border-white/5 pb-2">
         <button 
@@ -45,18 +65,6 @@ export default function AdminDashboard() {
         >
           MARKETS
         </button>
-        <button 
-          onClick={() => setActiveTab("users")}
-          className={`text-sm font-bold pb-2 transition-colors ${activeTab === 'users' ? 'text-neon-green border-b-2 border-neon-green' : 'text-muted-foreground'}`}
-        >
-          USERS
-        </button>
-        <button 
-          onClick={() => setActiveTab("security")}
-          className={`text-sm font-bold pb-2 transition-colors ${activeTab === 'security' ? 'text-neon-green border-b-2 border-neon-green' : 'text-muted-foreground'}`}
-        >
-          SECURITY
-        </button>
       </div>
 
       {/* Pending Resolutions */}
@@ -64,17 +72,14 @@ export default function AdminDashboard() {
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-black tracking-tight flex items-center gap-2">
             <Database className="h-5 w-5 text-neon-green" />
-            Pending Resolutions
+            Active Markets
           </h2>
-          <span className="rounded-full bg-red-500/20 px-3 py-1 text-[10px] font-black text-red-500 uppercase tracking-widest">3 Urgent</span>
+          <span className="rounded-full bg-neon-green/20 px-3 py-1 text-[10px] font-black text-neon-green uppercase tracking-widest">{markets?.length} Active</span>
         </div>
 
         <div className="space-y-3">
-          {[
-            { title: "TON to reach $10", category: "Crypto", volume: "1.2M TON" },
-            { title: "Champions League Winner", category: "Sports", volume: "850K TON" },
-          ].map((market, i) => (
-            <div key={i} className="rounded-3xl border border-white/5 bg-white/5 p-6 space-y-4">
+          {markets?.map((market: any) => (
+            <div key={market.id} className="rounded-3xl border border-white/5 bg-white/5 p-6 space-y-4">
               <div className="flex items-start justify-between">
                 <div>
                   <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{market.category}</span>
@@ -82,13 +87,24 @@ export default function AdminDashboard() {
                 </div>
                 <div className="text-right">
                   <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Volume</span>
-                  <p className="text-sm font-black">{market.volume}</p>
+                  <p className="text-sm font-black">{parseFloat(market.totalVolume).toFixed(2)} TON</p>
                 </div>
               </div>
               <div className="flex gap-3">
-                 <Button className="flex-1 rounded-xl bg-neon-green text-black hover:bg-neon-green/90 font-black text-xs h-10">RESOLVE YES</Button>
-                 <Button className="flex-1 rounded-xl bg-red-500 text-white hover:bg-red-500/90 font-black text-xs h-10">RESOLVE NO</Button>
-                 <Button variant="ghost" className="flex-1 rounded-xl bg-white/5 font-black text-xs h-10">CANCEL</Button>
+                 <Button 
+                    onClick={() => resolveMutation.mutate({ marketId: market.id, outcome: "YES" })}
+                    disabled={resolveMutation.isPending}
+                    className="flex-1 rounded-xl bg-neon-green text-black hover:bg-neon-green/90 font-black text-xs h-10"
+                 >
+                  RESOLVE YES
+                 </Button>
+                 <Button 
+                    onClick={() => resolveMutation.mutate({ marketId: market.id, outcome: "NO" })}
+                    disabled={resolveMutation.isPending}
+                    className="flex-1 rounded-xl bg-red-500 text-white hover:bg-red-500/90 font-black text-xs h-10"
+                 >
+                  RESOLVE NO
+                 </Button>
               </div>
             </div>
           ))}
@@ -101,16 +117,7 @@ export default function AdminDashboard() {
            <AlertCircle className="h-5 w-5" />
            <h3 className="text-sm font-black tracking-tight">Security Alerts</h3>
         </div>
-        <div className="space-y-2">
-           <div className="flex items-center justify-between text-xs font-medium py-2 border-b border-white/5">
-              <span className="text-muted-foreground">High volume from single user</span>
-              <span className="text-amber-500">Review</span>
-           </div>
-           <div className="flex items-center justify-between text-xs font-medium py-2">
-              <span className="text-muted-foreground">Multiple accounts same IP</span>
-              <span className="text-amber-500">Review</span>
-           </div>
-        </div>
+        <p className="text-xs text-muted-foreground font-medium">All platform operations are currently normal.</p>
       </div>
     </div>
   );

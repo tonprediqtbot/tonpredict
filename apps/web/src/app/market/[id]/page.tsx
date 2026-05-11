@@ -4,10 +4,12 @@ import { useQuery } from "@tanstack/react-query";
 import { useParams, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { ChevronLeft, Share2, Info, Activity, History, MessageSquare, Timer } from "lucide-react";
-import { getMarkets } from "@/lib/actions";
+import { getMarket } from "@/lib/actions";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { BetModal } from "@/components/BetModal";
+import { BettingEngine } from "@/lib/betting-engine";
+import { formatDistanceToNow } from "date-fns";
 
 export default function MarketDetail() {
   const { id } = useParams();
@@ -17,10 +19,19 @@ export default function MarketDetail() {
   const { data: market, isLoading } = useQuery({
     queryKey: ["market", id],
     queryFn: async () => {
-      const res = await getMarkets();
-      return res.data?.find((m: any) => m.id === id);
+      if (typeof id !== "string") return null;
+      const res = await getMarket(id);
+      return res.data;
     },
   });
+
+  const probabilities = useMemo(() => {
+    if (!market) return { yes: 50, no: 50 };
+    return BettingEngine.getProbabilities({
+      yesPool: market.yesPool,
+      noPool: market.noPool
+    });
+  }, [market]);
 
   if (isLoading) {
     return (
@@ -30,7 +41,7 @@ export default function MarketDetail() {
     );
   }
 
-  if (!market) return <div>Market not found</div>;
+  if (!market) return <div className="p-10 text-center">Market not found</div>;
 
   return (
     <div className="space-y-6">
@@ -39,7 +50,14 @@ export default function MarketDetail() {
           <ChevronLeft className="h-6 w-6" />
         </Button>
         <div className="flex items-center gap-2">
-           <Button variant="ghost" size="icon" className="rounded-full bg-white/5">
+           <Button variant="ghost" size="icon" className="rounded-full bg-white/5" onClick={() => {
+              if (navigator.share) {
+                navigator.share({
+                  title: market.title,
+                  url: window.location.href
+                });
+              }
+           }}>
             <Share2 className="h-4 w-4" />
           </Button>
         </div>
@@ -52,16 +70,16 @@ export default function MarketDetail() {
           </span>
           <div className="flex items-center gap-1 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
             <Timer className="h-3 w-3 text-neon-purple" />
-            Resolves July 1, 2025
+            Resolves {new Date(market.endDate).toLocaleDateString()}
           </div>
         </div>
         <h1 className="text-2xl font-extrabold tracking-tight leading-tight">{market.title}</h1>
       </div>
 
-      {/* Chart Section (Placeholder for high-fidelity) */}
+      {/* Probability Chart Section */}
       <div className="relative h-48 w-full overflow-hidden rounded-3xl bg-white/5 border border-white/5 p-6">
         <div className="flex h-full items-end gap-1">
-          {[40, 45, 30, 55, 60, 58, 65, 70, 68, 75].map((h, i) => (
+          {[40, 45, 30, 55, 60, 58, 65, 70, 68, probabilities.yes].map((h, i) => (
             <motion.div
               key={i}
               initial={{ height: 0 }}
@@ -72,7 +90,7 @@ export default function MarketDetail() {
           ))}
         </div>
         <div className="absolute left-6 top-6">
-          <span className="text-3xl font-black text-neon-blue">75%</span>
+          <span className="text-3xl font-black text-neon-blue">{probabilities.yes}%</span>
           <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Chance of YES</p>
         </div>
       </div>
@@ -80,11 +98,11 @@ export default function MarketDetail() {
       <div className="grid grid-cols-2 gap-4">
         <div className="glass-panel rounded-2xl p-4 text-center">
           <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Total Volume</p>
-          <p className="mt-1 text-lg font-bold text-foreground">{market.total_volume.toLocaleString()} TON</p>
+          <p className="mt-1 text-lg font-bold text-foreground">{parseFloat(market.totalVolume).toFixed(2)} TON</p>
         </div>
         <div className="glass-panel rounded-2xl p-4 text-center">
           <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Liquidity</p>
-          <p className="mt-1 text-lg font-bold text-neon-purple">85.4K TON</p>
+          <p className="mt-1 text-lg font-bold text-neon-purple">{parseFloat(market.liquidity).toFixed(2)} TON</p>
         </div>
       </div>
 
@@ -94,7 +112,7 @@ export default function MarketDetail() {
         </p>
         <div className="flex items-center gap-2 text-[10px] font-bold text-neon-blue uppercase tracking-widest">
           <Info className="h-3 w-3" />
-          Resolution Source: CoinMarketCap / Official Blog
+          Resolution Source: {market.resolutionSource || "DAO Consensus"}
         </div>
       </div>
 
@@ -104,13 +122,13 @@ export default function MarketDetail() {
             className="h-16 flex-1 rounded-2xl bg-neon-green/10 text-neon-green border-2 border-neon-green/20 text-lg font-black hover:bg-neon-green/20"
             onClick={() => setBetSide("YES")}
           >
-            YES 75%
+            YES {probabilities.yes}%
           </Button>
           <Button 
             className="h-16 flex-1 rounded-2xl bg-red-500/10 text-red-500 border-2 border-red-500/20 text-lg font-black hover:bg-red-500/20"
             onClick={() => setBetSide("NO")}
           >
-            NO 25%
+            NO {probabilities.no}%
           </Button>
         </div>
 
@@ -119,30 +137,34 @@ export default function MarketDetail() {
              <div className="flex items-center gap-2 text-xs font-bold text-foreground border-b-2 border-primary pb-2">
                 <Activity className="h-4 w-4" /> Activity
              </div>
-             <div className="flex items-center gap-2 text-xs font-bold text-muted-foreground pb-2">
-                <History className="h-4 w-4" /> History
-             </div>
-             <div className="flex items-center gap-2 text-xs font-bold text-muted-foreground pb-2">
-                <MessageSquare className="h-4 w-4" /> Discussion
-             </div>
           </div>
 
           <div className="space-y-4">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="flex items-center justify-between rounded-xl bg-white/5 p-3">
-                <div className="flex items-center gap-3">
-                  <div className="h-8 w-8 rounded-full bg-gradient-to-tr from-gray-700 to-gray-800"></div>
-                  <div>
-                    <p className="text-xs font-bold">UQp3...9k2a</p>
-                    <p className="text-[10px] text-muted-foreground">Bought YES shares</p>
+            {market.bets?.length === 0 ? (
+              <p className="text-center py-10 text-xs text-muted-foreground uppercase font-bold">No activity yet</p>
+            ) : (
+              market.bets?.map((bet: any) => (
+                <div key={bet.id} className="flex items-center justify-between rounded-xl bg-white/5 p-3">
+                  <div className="flex items-center gap-3">
+                    <div className="h-8 w-8 rounded-full bg-gradient-to-tr from-gray-700 to-gray-800 flex items-center justify-center text-[10px] font-bold">
+                      {bet.user.username?.[0] || "U"}
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold">{bet.user.username || "Anonymous"}</p>
+                      <p className="text-[10px] text-muted-foreground font-medium uppercase">Bought {bet.side} shares</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className={`text-xs font-bold ${bet.side === "YES" ? "text-neon-green" : "text-red-500"}`}>
+                      {parseFloat(bet.amount).toFixed(2)} TON
+                    </p>
+                    <p className="text-[10px] text-muted-foreground font-bold">
+                      {formatDistanceToNow(new Date(bet.created_at), { addSuffix: true })}
+                    </p>
                   </div>
                 </div>
-                <div className="text-right">
-                  <p className="text-xs font-bold text-neon-green">+450 TON</p>
-                  <p className="text-[10px] text-muted-foreground">2m ago</p>
-                </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </div>
       </div>

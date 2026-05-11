@@ -1,17 +1,57 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Share2, Users, Gift, DollarSign, ArrowRight, Copy, CheckCircle2 } from "lucide-react";
+import { Users, Gift, DollarSign, ArrowRight, Copy, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { getUserProfile } from "@/lib/actions";
+import WebApp from "@twa-dev/sdk";
+import { toast } from "sonner";
 
 export default function ReferralsPage() {
   const [copied, setCopied] = useState(false);
+  const [tgId, setTgId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && WebApp.initDataUnsafe?.user) {
+      setTgId(WebApp.initDataUnsafe.user.id.toString());
+    }
+  }, []);
+
+  const { data: profile, isLoading } = useQuery({
+    queryKey: ["profile", tgId],
+    queryFn: async () => {
+      if (!tgId) return null;
+      const res = await getUserProfile(tgId);
+      return res.data || null;
+    },
+    enabled: !!tgId,
+  });
+
+  const referralCode = profile?.referral_code || "INVITE";
+  const referralLink = `https://t.me/${process.env.NEXT_PUBLIC_BOT_NAME}?start=${referralCode}`;
 
   const handleCopy = () => {
+    navigator.clipboard.writeText(referralLink);
     setCopied(true);
+    toast.success("Link copied to clipboard!");
     setTimeout(() => setCopied(false), 2000);
   };
+
+  const handleShare = () => {
+    const text = encodeURIComponent(`🚀 Join me on TonBet! Predict world events and win TON. Start with bonus points using my link!`);
+    const url = `https://t.me/share/url?url=${encodeURIComponent(referralLink)}&text=${text}`;
+    WebApp.openTelegramLink(url);
+  };
+
+  if (isLoading || !tgId) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8">
@@ -24,13 +64,13 @@ export default function ReferralsPage() {
       <div className="grid grid-cols-2 gap-4">
         <div className="glass-panel flex flex-col items-center rounded-3xl p-6 border border-white/5">
           <Users className="mb-2 h-6 w-6 text-neon-blue" />
-          <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Total Invited</p>
-          <p className="mt-1 text-2xl font-black text-foreground">124</p>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Friends Invited</p>
+          <p className="mt-1 text-2xl font-black text-foreground">{profile?._count.referrals || 0}</p>
         </div>
         <div className="glass-panel flex flex-col items-center rounded-3xl p-6 border border-white/5">
           <DollarSign className="mb-2 h-6 w-6 text-neon-green" />
-          <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Earned</p>
-          <p className="mt-1 text-2xl font-black text-neon-green">450.5</p>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Ref Points</p>
+          <p className="mt-1 text-2xl font-black text-neon-green">{(profile?._count.referrals || 0) * 100}</p>
         </div>
       </div>
 
@@ -48,7 +88,7 @@ export default function ReferralsPage() {
           <div className="space-y-2">
             <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Your Referral Link</label>
             <div className="flex items-center gap-2 rounded-2xl bg-black/40 p-2 border border-white/5">
-              <code className="flex-1 px-3 text-xs font-bold truncate text-neon-purple">t.me/tonbet_bot?start=TON8822</code>
+              <code className="flex-1 px-3 text-xs font-bold truncate text-neon-purple">t.me/bot?start={referralCode}</code>
               <Button 
                 onClick={handleCopy}
                 className={`rounded-xl px-4 transition-all ${copied ? 'bg-neon-green text-black' : 'bg-primary'}`}
@@ -58,7 +98,10 @@ export default function ReferralsPage() {
             </div>
           </div>
 
-          <Button className="w-full rounded-2xl py-8 text-lg font-black shadow-2xl shadow-primary/20 gap-2">
+          <Button 
+            onClick={handleShare}
+            className="w-full rounded-2xl py-8 text-lg font-black shadow-2xl shadow-primary/20 gap-2"
+          >
             SHARE ON TELEGRAM <ArrowRight className="h-5 w-5" />
           </Button>
         </div>
@@ -71,7 +114,7 @@ export default function ReferralsPage() {
           {[
             { step: 1, text: "Share your unique referral link." },
             { step: 2, text: "Friends join and trade on TonBet." },
-            { step: 3, text: "You get 5% of their fees INSTANTLY." },
+            { step: 3, text: "You get bonus points for every active friend." },
           ].map((item) => (
             <div key={item.step} className="flex items-center gap-4 rounded-2xl bg-white/5 p-4 border border-white/5">
               <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/5 text-xs font-black text-primary">
@@ -83,27 +126,8 @@ export default function ReferralsPage() {
         </div>
       </div>
 
-      {/* Top Referrers Preview */}
-      <div className="rounded-3xl border border-white/5 bg-white/5 p-6">
-        <div className="flex items-center justify-between mb-4">
-           <h3 className="text-sm font-black tracking-tight">Top Referrers</h3>
-           <span className="text-[10px] font-bold text-primary uppercase tracking-widest">View All</span>
-        </div>
-        <div className="space-y-3">
-           {[
-             { name: "AlphaInvites", earned: "4,250 TON" },
-             { name: "TelegramPromo", earned: "3,100 TON" },
-           ].map((ref, i) => (
-             <div key={i} className="flex items-center justify-between">
-                <span className="text-xs font-bold text-muted-foreground">{ref.name}</span>
-                <span className="text-xs font-black text-neon-green">{ref.earned}</span>
-             </div>
-           ))}
-        </div>
-      </div>
-
       <div className="text-center pb-10">
-        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest opacity-20">Rewards are distributed on-chain</p>
+        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest opacity-20">Rewards are distributed based on community engagement</p>
       </div>
     </div>
   );

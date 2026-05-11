@@ -2,6 +2,8 @@ import { Telegraf, Markup } from 'telegraf';
 import { prisma } from '@tonbet/database';
 import * as dotenv from 'dotenv';
 import Redis from 'ioredis';
+import { Server } from 'socket.io';
+import http from 'http';
 
 dotenv.config({ path: '../../.env' });
 
@@ -11,19 +13,14 @@ if (!token) {
   process.exit(1);
 }
 
-if (!process.env.DATABASE_URL) {
-  console.error('❌ [Critical] DATABASE_URL is missing!');
-  console.error('👉 Fix: Go to Railway Dashboard > Bot Service > Variables > Reference > PostgreSQL DATABASE_URL');
-} else {
-  console.log('✅ [Database] Connection string detected');
-}
-
 const bot = new Telegraf(token);
 
-
-// Redis for rate limiting
+// Redis
 const redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
+const sub = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
+
 redis.on('error', (err) => console.error('Redis Error:', err.message));
+sub.on('error', (err) => console.error('Redis Sub Error:', err.message));
 
 // Configuration
 let webAppUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
@@ -31,123 +28,79 @@ if (webAppUrl.includes('${RAILWAY_PUBLIC_DOMAIN}') && process.env.RAILWAY_PUBLIC
   webAppUrl = webAppUrl.replace('${RAILWAY_PUBLIC_DOMAIN}', process.env.RAILWAY_PUBLIC_DOMAIN);
 }
 
-// Error handlers
-process.on('uncaughtException', (err) => console.error('[Fatal] Uncaught:', err));
-process.on('unhandledRejection', (reason) => console.error('[Fatal] Rejection:', reason));
-
-// Middleware: Rate Limiting
-bot.use(async (ctx, next) => {
-  if (!ctx.from) return next();
-  const key = `rate_limit:${ctx.from.id}`;
-  try {
-    const count = await redis.incr(key);
-    if (count === 1) await redis.expire(key, 1);
-    if (count > 10) return ctx.reply('⚠️ Please slow down a bit.');
-  } catch (e) {}
-  return next();
-});
-
 // Command: /start
 bot.start(async (ctx) => {
   const telegramId = ctx.from.id.toString();
   const username = ctx.from.username || null;
   const firstName = ctx.from.first_name;
-  const startPayload = (ctx as any).startPayload; // Referral code from start payload
-
-  console.log(`[User] Start command from ${telegramId} (${username || 'no-username'})`);
 
   try {
-    // Upsert user to ensure they exist in our DB
-    const user = await prisma.user.upsert({
+    await prisma.user.upsert({
       where: { telegram_id: telegramId },
-      update: { username: username }, // Update username if it changed
+      update: { username: username },
       create: {
         telegram_id: telegramId,
         username: username,
         referral_code: Math.random().toString(36).substring(2, 8).toUpperCase(),
-        referred_by: startPayload || null,
       },
     });
 
     await ctx.reply(
-      `Welcome to TonBet, ${firstName}! 🚀\n\nPredict on world events, sports, and crypto markets using TON. Secure, fast, and decentralized.`,
+      `Welcome to TonBet, ${firstName}! 🚀\n\nPredict on world events and win TON.`,
       Markup.inlineKeyboard([
         [Markup.button.webApp('Launch TonBet 📱', webAppUrl)],
-        [Markup.button.callback('How it works ❓', 'help'), Markup.button.callback('My Portfolio 📊', 'portfolio')],
         [Markup.button.url('Join Community 👥', 'https://t.me/tonbet_community')]
       ])
     );
-  } catch (error: any) {
-    console.error('[Database] Sync Error:', error);
-    await ctx.reply(`⚠️ Database Error: ${error.message}\n\nWelcome back to TonBet! 🚀\n\nClick below to open the app.`, 
-      Markup.inlineKeyboard([[Markup.button.webApp('Launch TonBet 📱', webAppUrl)]])
-    );
-  }
-
-});
-
-// Command: /markets
-bot.command('markets', (ctx) => {
-  ctx.reply('Explore active prediction markets:', Markup.inlineKeyboard([
-    [Markup.button.webApp('View All Markets 📈', `${webAppUrl}/markets`)]
-  ]));
-});
-
-// Command: /refer
-bot.command('refer', async (ctx) => {
-  const telegramId = ctx.from.id.toString();
-  try {
-    const user = await prisma.user.findUnique({ where: { telegram_id: telegramId } });
-    if (user) {
-      const refLink = `https://t.me/${process.env.NEXT_PUBLIC_BOT_NAME}?start=${user.referral_code}`;
-      ctx.reply(`💰 *Refer & Earn*\n\nShare your link and earn rewards from every bet your friends make!\n\nYour Link: \`${refLink}\``, { parse_mode: 'Markdown' });
-    } else {
-      ctx.reply('Please use /start first to register.');
-    }
-  } catch (e) {
-    ctx.reply('Error fetching referral data.');
+  } catch (error) {
+    console.error('[Database] Start Error:', error);
   }
 });
 
-// Callbacks
-bot.action('help', (ctx) => {
-  ctx.answerCbQuery();
-  ctx.reply('📖 *How to play TonBet:*\n\n1. Launch the Mini App\n2. Connect your TON Wallet\n3. Choose a market and predict Yes or No\n4. Win TON when your prediction comes true!', { parse_mode: 'Markdown' });
-});
-
-bot.action('portfolio', (ctx) => {
-  ctx.answerCbQuery();
-  ctx.reply('Your portfolio is available inside the Mini App:', Markup.inlineKeyboard([
-    [Markup.button.webApp('Open Portfolio 💼', `${webAppUrl}/portfolio`)]
-  ]));
-});
-
-// Express Server
+// Express + Socket.IO Server
 async function startServer() {
   const express = require('express');
   const app = express();
-  app.use(express.json());
-
-  // Health check should be ready ASAP
-  app.get('/health', (_: any, res: any) => {
-    console.log('[Health] Heartbeat check received');
-    res.status(200).send('OK');
+  const server = http.createServer(app);
+  const io = new Server(server, {
+    cors: {
+      origin: "*",
+      methods: ["GET", "POST"]
+    }
   });
 
-  app.get('/', (_: any, res: any) => res.status(200).send('TonBet Bot Online'));
+  app.use(express.json());
+
+  // Health check
+  app.get('/health', (_: any, res: any) => res.status(200).send('OK'));
   app.post('/webhook', bot.webhookCallback('/webhook'));
-  
-  app.use((req: any, res: any) => {
-    res.status(200).send('OK');
+
+  // Socket logic
+  io.on('connection', (socket) => {
+    console.log(`[Socket] User connected: ${socket.id}`);
+    socket.on('disconnect', () => console.log(`[Socket] User disconnected: ${socket.id}`));
+  });
+
+  // Redis Subscription for Real-time Broadcast
+  sub.subscribe('market_updates', (err) => {
+    if (err) console.error('Failed to subscribe to market_updates:', err);
+  });
+
+  sub.on('message', (channel, message) => {
+    if (channel === 'market_updates') {
+      const data = JSON.parse(message);
+      console.log(`[Realtime] Broadcasting update for market ${data.marketId}`);
+      io.emit('market_update', data);
+    }
   });
 
   const port = 8080;
-  const server = app.listen(port, '0.0.0.0', async () => {
-    console.log(`[Final] Bot Server Online on 0.0.0.0:${port}`);
+  server.listen(port, '0.0.0.0', async () => {
+    console.log(`[Final] Real-time Hub Online on 0.0.0.0:${port}`);
     
     // Auto-update Webhook
     const domain = process.env.WEBHOOK_DOMAIN || `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`;
-    if (domain && domain !== 'https://undefined' && domain !== 'https://') {
+    if (domain && domain !== 'https://undefined') {
       try {
         await bot.telegram.setWebhook(`${domain}/webhook`);
         console.log(`[Webhook] Telegram synced: ${domain}/webhook`);
@@ -157,15 +110,15 @@ async function startServer() {
     }
   });
 
-  const stopBot = (signal: string) => {
+  const stopServer = (signal: string) => {
     console.log(`[Shutdown] ${signal}`);
-    try { bot.stop(signal); } catch (e) {}
+    bot.stop(signal);
     server.close();
     process.exit(0);
   };
 
-  process.once('SIGINT', () => stopBot('SIGINT'));
-  process.once('SIGTERM', () => stopBot('SIGTERM'));
+  process.once('SIGINT', () => stopServer('SIGINT'));
+  process.once('SIGTERM', () => stopServer('SIGTERM'));
 }
 
 startServer().catch(err => console.error('[Fatal] Server Crash:', err));

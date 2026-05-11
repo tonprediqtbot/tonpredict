@@ -1,10 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Info, Zap, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useTonConnectUI } from "@tonconnect/ui-react";
+import { BettingEngine } from "@/lib/betting-engine";
+import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { toNano } from "@ton/core";
 
 interface BetModalProps {
   isOpen: boolean;
@@ -12,6 +17,9 @@ interface BetModalProps {
   market: {
     id: string;
     title: string;
+    yesPool: number | string;
+    noPool: number | string;
+    liquidity: number | string;
   };
   side: "YES" | "NO";
 }
@@ -19,20 +27,67 @@ interface BetModalProps {
 export function BetModal({ isOpen, onClose, market, side }: BetModalProps) {
   const [amount, setAmount] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
+  const [tonConnectUI] = useTonConnectUI();
+  const queryClient = useQueryClient();
 
-  if (!isOpen) return null;
-
-  const shares = amount ? (parseFloat(amount) * (side === "YES" ? 1.54 : 2.85)).toFixed(2) : "0.00";
-  const potentialReturn = amount ? (parseFloat(amount) * (side === "YES" ? 1.54 : 2.85)).toFixed(2) : "0.00";
+  const shares = useMemo(() => {
+    if (!amount || isNaN(parseFloat(amount))) return "0";
+    return BettingEngine.calculateShares(amount, side, {
+      yesPool: market.yesPool,
+      noPool: market.noPool,
+      liquidity: market.liquidity
+    }).toFixed(2);
+  }, [amount, side, market]);
 
   const handlePlaceBet = async () => {
+    if (!tonConnectUI.connected) {
+      toast.error("Please connect your wallet first");
+      return;
+    }
+
     setIsProcessing(true);
-    // Simulate TON transaction
-    setTimeout(() => {
-      setIsProcessing(false);
+    try {
+      // 1. Send Transaction to TON
+      const transaction = {
+        validUntil: Math.floor(Date.now() / 1000) + 60, // 60 sec
+        messages: [
+          {
+            address: "UQAnH3L8qF5e-B0E9q_HIoBMDyyK_aYShY0gAM9V2xXyXyXy", // Platform Wallet (Replace with real address)
+            amount: toNano(amount).toString(),
+          },
+        ],
+      };
+
+      const result = await tonConnectUI.sendTransaction(transaction);
+      const txHash = result.boc; // In a real app, you'd calculate the hash from the BOC
+
+      // 2. Notify Backend
+      const response = await fetch("/api/bet", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          marketId: market.id,
+          userId: "current-user-id", // Get this from auth/context
+          side,
+          amount,
+          txHash
+        }),
+      });
+
+      if (!response.ok) throw new Error("Failed to record bet on backend");
+
+      toast.success("Bet placed successfully! 🚀");
+      queryClient.invalidateQueries({ queryKey: ["markets"] });
       onClose();
-    }, 2000);
+    } catch (error: any) {
+      console.error("Bet Error:", error);
+      toast.error(error.message || "Failed to place bet");
+    } finally {
+      setIsProcessing(false);
+    }
   };
+
+  if (!isOpen) return null;
 
   return (
     <AnimatePresence>
@@ -82,7 +137,7 @@ export function BetModal({ isOpen, onClose, market, side }: BetModalProps) {
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground font-medium">Potential Payout</span>
-                <span className="font-bold text-neon-green">{potentialReturn} TON</span>
+                <span className="font-bold text-neon-green">{shares} TON</span>
               </div>
             </div>
 
@@ -94,13 +149,13 @@ export function BetModal({ isOpen, onClose, market, side }: BetModalProps) {
             <Button
               size="lg"
               onClick={handlePlaceBet}
-              disabled={!amount || isProcessing}
+              disabled={!amount || isProcessing || parseFloat(amount) <= 0}
               className={cn(
                 "w-full rounded-2xl py-8 text-lg font-bold shadow-2xl",
                 side === "YES" ? "bg-neon-green hover:bg-neon-green/90 text-black" : "bg-red-500 hover:bg-red-500/90 text-white"
               )}
             >
-              {isProcessing ? "Processing..." : `Confirm ${side} Bet`}
+              {isProcessing ? "Signing Transaction..." : `Confirm ${side} Bet`}
             </Button>
 
             <div className="flex items-center justify-center gap-1.5 text-[10px] font-bold text-muted-foreground/50 uppercase tracking-widest">

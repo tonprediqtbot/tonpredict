@@ -2,32 +2,43 @@
 
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { User, Wallet, Share2, TrendingUp, History, Settings, ExternalLink, Trophy } from "lucide-react";
+import { User, Wallet, Share2, TrendingUp, History, Settings, ExternalLink, Trophy, ChevronRight, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import WebApp from "@twa-dev/sdk";
-import { useAppStore } from "@/lib/store";
 import { getUserProfile } from "@/lib/actions";
+import { useQuery } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { useTonAddress } from "@tonconnect/ui-react";
 
 export default function ProfilePage() {
-  const { walletAddress } = useAppStore();
-  const [profile, setProfile] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const walletAddress = useTonAddress();
+  const [tgId, setTgId] = useState<string | null>(null);
 
   useEffect(() => {
-    async function load() {
-      if (typeof window !== "undefined" && WebApp.initDataUnsafe?.user) {
-        const tgUser = WebApp.initDataUnsafe.user;
-        const res = await getUserProfile(tgUser.id.toString());
-        if (res.success) {
-          setProfile(res.data);
-        }
-      }
-      setLoading(false);
+    if (typeof window !== "undefined" && WebApp.initDataUnsafe?.user) {
+      setTgId(WebApp.initDataUnsafe.user.id.toString());
     }
-    load();
   }, []);
 
+  const { data: profile, isLoading } = useQuery({
+    queryKey: ["profile", tgId],
+    queryFn: async () => {
+      if (!tgId) return null;
+      const res = await getUserProfile(tgId);
+      return res.data || null;
+    },
+    enabled: !!tgId,
+  });
+
   const tgUser = typeof window !== "undefined" ? WebApp.initDataUnsafe?.user : null;
+
+  if (isLoading || !tgId) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8 pb-10">
@@ -47,7 +58,7 @@ export default function ProfilePage() {
             <ShieldCheck className="h-3 w-3 text-black" />
           </div>
         </div>
-        <h1 className="text-2xl font-black tracking-tight">{tgUser?.first_name || "Traders"} {tgUser?.last_name || ""}</h1>
+        <h1 className="text-2xl font-black tracking-tight">{tgUser?.first_name || "Predictor"} {tgUser?.last_name || ""}</h1>
         <p className="text-sm font-bold text-muted-foreground">@{tgUser?.username || "tonbet_user"}</p>
       </div>
 
@@ -55,13 +66,13 @@ export default function ProfilePage() {
       <div className="grid grid-cols-2 gap-4">
         <div className="glass-panel flex flex-col items-center rounded-3xl p-5 border border-white/5">
           <TrendingUp className="mb-2 h-5 w-5 text-neon-green" />
-          <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Total PnL</span>
-          <p className="mt-1 text-xl font-black text-neon-green">+1,450.50</p>
+          <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Total Points</span>
+          <p className="mt-1 text-xl font-black text-neon-green">{profile?.points || 0}</p>
         </div>
         <div className="glass-panel flex flex-col items-center rounded-3xl p-5 border border-white/5">
           <Trophy className="mb-2 h-5 w-5 text-neon-blue" />
           <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Rank</span>
-          <p className="mt-1 text-xl font-black text-neon-blue">#142</p>
+          <p className="mt-1 text-xl font-black text-neon-blue">#1</p>
         </div>
       </div>
 
@@ -82,8 +93,18 @@ export default function ProfilePage() {
           </Button>
         </div>
         <div className="flex gap-2">
-          <Button variant="neon" className="flex-1 rounded-xl bg-white/5 py-2 text-xs font-bold">Copy Address</Button>
-          <Button variant="neon" className="flex-1 rounded-xl bg-white/5 py-2 text-xs font-bold">Change Wallet</Button>
+          <Button 
+            variant="neon" 
+            className="flex-1 rounded-xl bg-white/5 py-2 text-xs font-bold"
+            onClick={() => {
+              if (walletAddress) {
+                navigator.clipboard.writeText(walletAddress);
+                toast.success("Address copied!");
+              }
+            }}
+          >
+            Copy Address
+          </Button>
         </div>
       </div>
 
@@ -94,11 +115,22 @@ export default function ProfilePage() {
           <h2 className="text-lg font-black tracking-tight">Refer & Earn</h2>
         </div>
         <p className="mb-6 text-sm text-muted-foreground leading-relaxed font-medium">
-          Get 5% of all trading fees from users you invite. Payouts are instant in TON.
+          Invite friends and climb the Hall of Fame. Exclusive TON rewards for top referrers.
         </p>
         <div className="flex items-center gap-2 rounded-2xl bg-black/40 p-2 border border-white/5">
-          <code className="flex-1 px-3 text-xs font-bold text-neon-purple uppercase tracking-widest">TON-BET-8822</code>
-          <Button className="rounded-xl px-6 font-black">COPY</Button>
+          <code className="flex-1 px-3 text-xs font-bold text-neon-purple uppercase tracking-widest">
+            {profile?.referral_code || "GENERATE"}
+          </code>
+          <Button 
+            className="rounded-xl px-6 font-black"
+            onClick={() => {
+              const link = `https://t.me/${process.env.NEXT_PUBLIC_BOT_NAME}?start=${profile?.referral_code}`;
+              navigator.clipboard.writeText(link);
+              toast.success("Invite link copied!");
+            }}
+          >
+            COPY
+          </Button>
         </div>
       </div>
 
@@ -111,13 +143,6 @@ export default function ProfilePage() {
           </div>
           <ChevronRight className="h-4 w-4 text-muted-foreground" />
         </button>
-        <button className="flex w-full items-center justify-between rounded-2xl bg-white/5 p-4 hover:bg-white/10 transition">
-          <div className="flex items-center gap-4">
-            <Settings className="h-5 w-5 text-muted-foreground" />
-            <span className="text-sm font-bold">Account Settings</span>
-          </div>
-          <ChevronRight className="h-4 w-4 text-muted-foreground" />
-        </button>
       </div>
 
       <div className="pt-4 text-center">
@@ -125,43 +150,4 @@ export default function ProfilePage() {
       </div>
     </div>
   );
-}
-
-function ShieldCheck(props: any) {
-  return (
-    <svg
-      {...props}
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10" />
-      <path d="m9 12 2 2 4-4" />
-    </svg>
-  )
-}
-
-function ChevronRight(props: any) {
-  return (
-    <svg
-      {...props}
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="m9 18 6-6-6-6" />
-    </svg>
-  )
 }

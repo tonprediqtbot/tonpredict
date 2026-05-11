@@ -4,6 +4,8 @@ import * as dotenv from 'dotenv';
 import Redis from 'ioredis';
 import * as http from 'http';
 
+console.log('[Entry] Process starting...');
+
 dotenv.config({ path: '../../.env' });
 
 const token = process.env.BOT_TOKEN;
@@ -112,39 +114,46 @@ if (domain && domain.includes('${RAILWAY_PUBLIC_DOMAIN}')) {
   }
 }
 
-const express = require('express');
-const app = express();
+async function startServer() {
+  const express = require('express');
+  const app = express();
 
-app.use(express.json());
+  app.use(express.json());
 
-// Log every request
-app.use((req: any, res: any, next: any) => {
-  console.log(`[Request] ${req.method} ${req.url}`);
-  next();
+  // Log every request
+  app.use((req: any, res: any, next: any) => {
+    console.log(`[Request] ${req.method} ${req.url}`);
+    next();
+  });
+
+  // Explicit health check for Railway
+  app.get('/health', (_: any, res: any) => {
+    res.status(200).send('OK');
+  });
+
+  // Webhook endpoint
+  app.post('/api/webhook', bot.webhookCallback('/api/webhook'));
+
+  // Root endpoint
+  app.get('/', (_: any, res: any) => {
+    res.status(200).send('TonBet Bot Running');
+  });
+
+  // Catch-all
+  app.use((req: any, res: any) => {
+    res.status(200).send('OK');
+  });
+
+  const port = process.env.PORT || 8080;
+  app.listen(port, '0.0.0.0', () => {
+    console.log(`[Final] Bot Server is fully initialized and listening on port ${port}`);
+  });
+}
+
+startServer().catch(err => {
+  console.error('[Fatal] Failed to start server:', err);
 });
 
-// Explicit health check for Railway
-app.get('/health', (_: any, res: any) => {
-  res.status(200).send('OK');
-});
-
-// Webhook endpoint
-app.post('/api/webhook', bot.webhookCallback('/api/webhook'));
-
-// Root endpoint
-app.get('/', (_: any, res: any) => {
-  res.status(200).send('TonBet Bot Running');
-});
-
-// Catch-all
-app.use((req: any, res: any) => {
-  res.status(200).send('OK');
-});
-
-const port = process.env.PORT || 8080;
-app.listen(port, '0.0.0.0', () => {
-  console.log(`[Final] Bot Server is fully initialized and listening on port ${port}`);
-});
 
 // Remove manual timeouts for a moment to see if Express 5 defaults work better on Railway
 

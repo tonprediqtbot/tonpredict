@@ -16,7 +16,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
   }, []);
 
   if (!mounted) {
-    return <>{children}</>;
+    return <div className="min-h-screen bg-black" />; // Prevent rendering children that depend on TonConnect Context
   }
 
   return (

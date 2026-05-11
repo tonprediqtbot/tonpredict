@@ -2,6 +2,7 @@ import { Telegraf, Markup } from 'telegraf';
 import { prisma } from '@tonbet/database';
 import * as dotenv from 'dotenv';
 import Redis from 'ioredis';
+import * as http from 'http';
 
 dotenv.config({ path: '../../.env' });
 
@@ -117,43 +118,39 @@ if (domain && domain.includes('${RAILWAY_PUBLIC_DOMAIN}')) {
 
 if (domain) {
   // Production: Use Webhooks
-  import('http').then(({ createServer }) => {
-    const port = Number(process.env.PORT) || 3000;
-    const webhookHandler = bot.webhookCallback('/api/webhook');
-    
-    const url = `${domain}/api/webhook`;
-    bot.telegram.setWebhook(url).then(() => {
-      console.log(`Webhook set to ${url}`);
-    }).catch(err => {
-      console.error('Failed to set webhook:', err.message);
-    });
+  const port = Number(process.env.PORT) || 3000;
+  const webhookHandler = bot.webhookCallback('/api/webhook');
+  
+  const url = `${domain}/api/webhook`;
+  bot.telegram.setWebhook(url).then(() => {
+    console.log(`Webhook set to ${url}`);
+  }).catch(err => {
+    console.error('Failed to set webhook:', err.message);
+  });
 
-    const server = createServer((req, res) => {
-      if (req.url === '/api/webhook' && req.method === 'POST') {
-        return webhookHandler(req, res);
-      }
-      
-      // Respond 200 OK to ALL other requests (Railway HTTP/TCP health checks, browsers, etc.)
-      res.writeHead(200, { 'Content-Type': 'text/plain' });
-      res.end('TonBet Bot Webhook Server is running perfectly.');
-    });
+  const server = http.createServer((req, res) => {
+    if (req.url === '/api/webhook' && req.method === 'POST') {
+      return webhookHandler(req, res);
+    }
     
-    server.listen(port, () => {
-      console.log(`Bot running via Webhooks on port ${port} (IPv4+IPv6)`);
-    });
+    // Respond 200 OK to ALL other requests (Railway HTTP/TCP health checks, browsers, etc.)
+    res.writeHead(200, { 'Content-Type': 'text/plain' });
+    res.end('TonBet Bot Webhook Server is running perfectly.');
+  });
+  
+  server.listen(port, () => {
+    console.log(`Bot running via Webhooks on port ${port} (IPv4+IPv6)`);
   });
 } else {
   // Local Development: Use Long Polling
   // Railway requires a port to be bound even if we are polling, otherwise it throws 502
-  import('http').then(({ createServer }) => {
-    const port = Number(process.env.PORT) || 3000;
-    const server = createServer((req, res) => {
-      res.writeHead(200);
-      res.end('TonBet Bot is running via Long Polling');
-    });
-    server.listen(port, () => {
-      console.log(`Fallback web server running on port ${port} (IPv4+IPv6)`);
-    });
+  const port = Number(process.env.PORT) || 3000;
+  const server = http.createServer((req, res) => {
+    res.writeHead(200);
+    res.end('TonBet Bot is running via Long Polling');
+  });
+  server.listen(port, () => {
+    console.log(`Fallback web server running on port ${port} (IPv4+IPv6)`);
   });
 
   bot.telegram.deleteWebhook().then(() => {

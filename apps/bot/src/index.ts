@@ -11,7 +11,12 @@ if (!token) {
   process.exit(1);
 }
 
+if (!process.env.DATABASE_URL) {
+  console.error('[Critical] DATABASE_URL is missing! Please link your database in Railway Variables.');
+}
+
 const bot = new Telegraf(token);
+
 
 // Redis for rate limiting
 const redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');

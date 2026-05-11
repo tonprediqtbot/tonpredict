@@ -137,8 +137,8 @@ async function startServer() {
   });
 
   const port = process.env.PORT || 8080;
-  const server = app.listen(port, async () => {
-    console.log(`[Final] Bot Server Online on Port ${port}`);
+  const server = app.listen(port, '0.0.0.0', async () => {
+    console.log(`[Final] Bot Server Online on 0.0.0.0:${port}`);
     
     // Auto-update Webhook
     const domain = process.env.WEBHOOK_DOMAIN || `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`;

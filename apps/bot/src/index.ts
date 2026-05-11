@@ -142,14 +142,12 @@ if (domain) {
     if (req.url === '/api/webhook' && req.method === 'POST') {
       return webhookHandler(req, res);
     }
-    
-    // Respond 200 OK to ALL other requests (Railway HTTP/TCP health checks, browsers, etc.)
     res.writeHead(200, { 'Content-Type': 'text/plain' });
     res.end('TonBet Bot Webhook Server is running perfectly.');
   });
   
-  server.listen(port, '0.0.0.0', () => {
-    console.log(`[Startup] Bot running via Webhooks on port ${port} (Explicit IPv4 0.0.0.0)`);
+  server.listen({ port, host: '::', ipv6Only: false }, () => {
+    console.log(`[Startup] Bot running via Webhooks on port ${port} (Dual Stack :: ipv6Only:false)`);
   });
 } else {
   // Local Development: Use Long Polling

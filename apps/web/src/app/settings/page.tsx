@@ -51,10 +51,10 @@ export default function SettingsPage() {
               {group.title}
             </h2>
             <div className="overflow-hidden rounded-3xl border border-white/5 bg-white/5">
-              {group.items.map((item, j) => (
+              {group.items.map((item: any, j) => (
                 <div 
                   key={j} 
-                  onClick={item.action}
+                  onClick={() => item.action?.()}
                   className={`flex items-center justify-between p-5 transition cursor-pointer ${
                     j !== group.items.length - 1 ? "border-b border-white/5" : ""
                   } ${item.active ? "bg-primary/10" : "hover:bg-white/5"}`}

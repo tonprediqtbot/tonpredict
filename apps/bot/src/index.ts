@@ -22,41 +22,18 @@ process.on('uncaughtException', (err) => {
 process.on('unhandledRejection', (reason, promise) => {
   console.error('[FATAL] Unhandled Rejection at:', promise, 'reason:', reason);
 });
+/*
 const redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
 redis.on('error', (err) => {
   console.error('Redis connection error:', err.message);
 });
-let webAppUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+*/
 
-// If Railway failed to interpolate the variable, inject it manually if it exists
-if (webAppUrl.includes('${RAILWAY_PUBLIC_DOMAIN}')) {
-  if (process.env.RAILWAY_PUBLIC_DOMAIN) {
-    webAppUrl = webAppUrl.replace('${RAILWAY_PUBLIC_DOMAIN}', process.env.RAILWAY_PUBLIC_DOMAIN);
-  } else {
-    console.warn("Warning: RAILWAY_PUBLIC_DOMAIN is not set but was referenced in NEXT_PUBLIC_API_URL. Falling back to localhost.");
-    webAppUrl = 'http://localhost:3000';
-  }
-}
-
-// Debug logging for all incoming updates
+// Mock rate limit
 bot.use(async (ctx, next) => {
-  console.log("Incoming update:", JSON.stringify(ctx.update, null, 2));
-  await next();
-});
-
-// Rate limiting middleware
-bot.use(async (ctx, next) => {
-  if (!ctx.from) return next();
-  const key = `rate_limit:${ctx.from.id}`;
-  const count = await redis.incr(key);
-  if (count === 1) {
-    await redis.expire(key, 1); // 1 second window
-  }
-  if (count > 3) {
-    return ctx.reply('Please slow down. You are sending messages too fast.');
-  }
   return next();
 });
+
 
 bot.start(async (ctx) => {
   console.log("START COMMAND RECEIVED");
@@ -66,6 +43,7 @@ bot.start(async (ctx) => {
   );
 });
 
+/*
 bot.command('markets', (ctx) => {
   ctx.reply('Browse active markets:', Markup.inlineKeyboard([
     [Markup.button.webApp('Open Markets', `${webAppUrl}/markets`)]
@@ -93,6 +71,8 @@ bot.action('portfolio', (ctx) => {
     [Markup.button.webApp('Open Portfolio', `${webAppUrl}/portfolio`)]
   ]));
 });
+*/
+
 
 console.log('[Config] RAW RAILWAY_PUBLIC_DOMAIN:', process.env.RAILWAY_PUBLIC_DOMAIN);
 console.log('[Config] RAW WEBHOOK_DOMAIN:', process.env.WEBHOOK_DOMAIN);

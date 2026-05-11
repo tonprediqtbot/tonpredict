@@ -31,11 +31,12 @@ ENV PORT=8080
 
 # Define start command based on SERVICE env var
 CMD if [ "$SERVICE" = "bot" ]; then \
-      cd apps/bot && npm start; \
+      cd apps/bot && exec node dist/index.js; \
     elif [ "$SERVICE" = "web" ]; then \
-      cd apps/web && npm start; \
+      cd apps/web && exec node_modules/.bin/next start; \
     elif [ "$SERVICE" = "admin" ]; then \
-      cd apps/admin && npm start; \
+      cd apps/admin && exec node_modules/.bin/next start; \
     else \
       echo "Unknown service: $SERVICE"; exit 1; \
     fi
+

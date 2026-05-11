@@ -3,7 +3,7 @@ import { Decimal } from 'decimal.js';
 export interface MarketPools {
   yesPool: string | number | Decimal;
   noPool: string | number | Decimal;
-  liquidity: string | number | Decimal;
+  liquidity?: string | number | Decimal;
 }
 
 export class BettingEngine {

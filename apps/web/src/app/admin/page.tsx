@@ -87,7 +87,7 @@ export default function AdminDashboard() {
                 </div>
                 <div className="text-right">
                   <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Volume</span>
-                  <p className="text-sm font-black">{parseFloat(market.totalVolume).toFixed(2)} TON</p>
+                  <p className="text-sm font-black">{parseFloat(market.totalVolume.toString()).toFixed(2)} TON</p>
                 </div>
               </div>
               <div className="flex gap-3">

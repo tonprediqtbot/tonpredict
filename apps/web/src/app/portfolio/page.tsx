@@ -36,7 +36,7 @@ export default function PortfolioPage() {
   }
 
   const positions = profile?.positions || [];
-  const totalValue = positions.reduce((acc: number, pos: any) => acc + (parseFloat(pos.shares) * parseFloat(pos.avgPrice)), 0);
+  const totalValue = positions.reduce((acc: number, pos: any) => acc + (parseFloat(pos.shares.toString()) * parseFloat(pos.avgPrice.toString())), 0);
 
   return (
     <div className="space-y-8">
@@ -107,12 +107,12 @@ export default function PortfolioPage() {
                 </div>
                 <div>
                   <h4 className="text-sm font-bold truncate max-w-[150px]">{pos.market.title}</h4>
-                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-0.5">{parseFloat(pos.shares).toFixed(2)} Shares</p>
+                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-0.5">{parseFloat(pos.shares.toString()).toFixed(2)} Shares</p>
                 </div>
               </div>
               <div className="text-right">
                 <p className="text-sm font-black text-white">
-                  Avg: {parseFloat(pos.avgPrice).toFixed(2)}
+                  Avg: {parseFloat(pos.avgPrice.toString()).toFixed(2)}
                 </p>
                 <div className="flex items-center justify-end gap-1 mt-1">
                    <Clock className="h-3 w-3 text-muted-foreground" />

@@ -94,7 +94,7 @@ async function startServer() {
     }
   });
 
-  const port = process.env.PORT || 8080;
+  const port = Number(process.env.PORT) || 8080;
   server.listen(port, '0.0.0.0', async () => {
     console.log(`[Final] Real-time Hub Online on 0.0.0.0:${port}`);
     

@@ -9,7 +9,7 @@
     "sleepApplication": false,
     "restartPolicyType": "ON_FAILURE",
     "restartPolicyMaxRetries": 10,
-    "startCommand": "sh -c 'if [ -z \"$DATABASE_URL\" ]; then echo \"ERROR: DATABASE_URL is not set. Please link a PostgreSQL database in Railway.\"; exit 1; fi && npx prisma db push --schema=packages/database/prisma/schema.prisma --accept-data-loss && npx tsx packages/database/seed.ts && cd apps/bot && HOST=0.0.0.0 exec node dist/index.js'",
+    "startCommand": "sh -c 'if [ -z \"$DATABASE_URL\" ]; then echo \"ERROR: DATABASE_URL is not set. Please link a PostgreSQL database in Railway.\"; exit 1; fi && npx prisma db push --schema=packages/database/prisma/schema.prisma --accept-data-loss && npx tsx packages/database/seed.ts && if [ \"$SERVICE\" = \"web\" ]; then cd apps/web && exec npx next start; elif [ \"$SERVICE\" = \"admin\" ]; then cd apps/admin && exec npx next start; else cd apps/bot && HOST=0.0.0.0 exec node dist/index.js; fi'",
     "healthcheckPath": "/health",
     "healthcheckTimeout": 300,
     "tcpProxyPort": 8080

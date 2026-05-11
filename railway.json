@@ -12,6 +12,6 @@
     "startCommand": "sh -c 'cd apps/bot && exec node dist/index.js'",
     "healthcheckPath": "/",
     "healthcheckTimeout": 300,
-    "tcpProxyPort": 3000
+    "tcpProxyPort": 8080
   }
 }

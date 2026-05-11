@@ -95,8 +95,8 @@ async function startServer() {
   app.get('/', (_: any, res: any) => res.status(200).send('TonBet Bot Running'));
   app.use((req: any, res: any) => res.status(200).send('OK'));
 
-  const port = process.env.PORT || 3000;
-  const server = app.listen(port, '0.0.0.0', async () => {
+  const port = process.env.PORT || 8080;
+  const server = app.listen(port, async () => {
     console.log(`[Final] Bot Server listening on port ${port}`);
     
     // Automatically update Telegram Webhook on startup

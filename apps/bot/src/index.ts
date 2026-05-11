@@ -12,7 +12,10 @@ if (!token) {
 }
 
 if (!process.env.DATABASE_URL) {
-  console.error('[Critical] DATABASE_URL is missing! Please link your database in Railway Variables.');
+  console.error('❌ [Critical] DATABASE_URL is missing!');
+  console.error('👉 Fix: Go to Railway Dashboard > Bot Service > Variables > Reference > PostgreSQL DATABASE_URL');
+} else {
+  console.log('✅ [Database] Connection string detected');
 }
 
 const bot = new Telegraf(token);

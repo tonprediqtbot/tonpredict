@@ -38,6 +38,19 @@ export class BettingEngine {
     }
   }
 
+  static getProbabilities(pools: MarketPools) {
+    const x = new Decimal(pools.yesPool);
+    const y = new Decimal(pools.noPool);
+    const total = x.add(y);
+    
+    if (total.isZero()) return { yes: 50, no: 50 };
+    
+    const yes = x.div(total).mul(100).toDecimalPlaces(1).toNumber();
+    const no = new Decimal(100).sub(yes).toNumber();
+    
+    return { yes, no };
+  }
+
   static getPrice(side: 'YES' | 'NO', pools: MarketPools) {
     const x = new Decimal(pools.yesPool);
     const y = new Decimal(pools.noPool);
@@ -50,19 +63,6 @@ export class BettingEngine {
     } else {
       return y.div(total);
     }
-  }
-
-  static getImpliedProbability(pools: MarketPools) {
-    const x = new Decimal(pools.yesPool);
-    const y = new Decimal(pools.noPool);
-    const total = x.add(y);
-    
-    if (total.isZero()) return { yes: 0.5, no: 0.5 };
-    
-    return {
-      yes: x.div(total).toNumber(),
-      no: y.div(total).toNumber()
-    };
   }
 
   /**

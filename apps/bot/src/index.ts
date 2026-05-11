@@ -36,6 +36,12 @@ if (webAppUrl.includes('${RAILWAY_PUBLIC_DOMAIN}')) {
   }
 }
 
+// Debug logging for all incoming updates
+bot.use(async (ctx, next) => {
+  console.log("Incoming update:", JSON.stringify(ctx.update, null, 2));
+  await next();
+});
+
 // Rate limiting middleware
 bot.use(async (ctx, next) => {
   if (!ctx.from) return next();

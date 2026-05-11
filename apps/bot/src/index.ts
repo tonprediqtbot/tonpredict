@@ -144,8 +144,26 @@ if (domain) {
   });
 } else {
   // Local Development: Use Long Polling
-  bot.launch().then(() => {
-    console.log('Bot is running via Long Polling...');
+  // Railway requires a port to be bound even if we are polling, otherwise it throws 502
+  import('http').then(({ createServer }) => {
+    const port = Number(process.env.PORT) || 3000;
+    const server = createServer((req, res) => {
+      res.writeHead(200);
+      res.end('TonBet Bot is running via Long Polling');
+    });
+    server.listen(port, '0.0.0.0', () => {
+      console.log(`Fallback web server running on port ${port}`);
+    });
+  });
+
+  bot.telegram.deleteWebhook().then(() => {
+    bot.launch().then(() => {
+      console.log('Bot is running via Long Polling...');
+    }).catch(err => {
+      console.error('Failed to launch bot via polling:', err.message);
+    });
+  }).catch(err => {
+    console.error('Failed to delete webhook:', err.message);
   });
 }
 

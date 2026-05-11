@@ -12,6 +12,9 @@ if (!token) {
 
 const bot = new Telegraf(token);
 const redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
+redis.on('error', (err) => {
+  console.error('Redis connection error:', err.message);
+});
 let webAppUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
 // If Railway failed to interpolate the variable, inject it manually if it exists

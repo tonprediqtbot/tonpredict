@@ -50,35 +50,11 @@ bot.use(async (ctx, next) => {
   return next();
 });
 
-bot.command('start', async (ctx) => {
-  const telegramId = ctx.from.id.toString();
-  const username = ctx.from.username || '';
-  
-  // Extract referral code from deep link if any: /start ref_123
-  const startPayload = ctx.message.text.split(' ')[1];
-  let referredBy = null;
-  if (startPayload && startPayload.startsWith('ref_')) {
-    referredBy = startPayload.replace('ref_', '');
-  }
+bot.start(async (ctx) => {
+  console.log("START COMMAND RECEIVED");
 
-  // Create or find user
-  await prisma.user.upsert({
-    where: { telegram_id: telegramId },
-    update: { username },
-    create: {
-      telegram_id: telegramId,
-      username,
-      referral_code: `ref_${telegramId}`,
-      referred_by: referredBy
-    }
-  });
-
-  ctx.reply(
-    `Welcome to TonBet! 🎲\n\nThe premier prediction market on the TON blockchain.\nPredict outcomes, trade shares, and earn TON.`,
-    Markup.inlineKeyboard([
-      [Markup.button.webApp('Launch TonBet', webAppUrl)],
-      [Markup.button.callback('Help', 'help'), Markup.button.callback('My Portfolio', 'portfolio')]
-    ])
+  await ctx.reply(
+    "Welcome to TonBet 🚀"
   );
 });
 

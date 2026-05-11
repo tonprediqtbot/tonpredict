@@ -1,7 +1,7 @@
 FROM node:22-alpine AS base
 
 FROM base AS builder
-RUN apk add --no-cache libc6-compat
+RUN apk add --no-cache libc6-compat openssl
 WORKDIR /app
 
 RUN npm install turbo --global
@@ -24,6 +24,10 @@ FROM base AS runner
 WORKDIR /app
 RUN apk add --no-cache libc6-compat openssl
 COPY --from=builder /app .
+
+# Expose port for Railway Edge Router
+EXPOSE 8080
+ENV PORT=8080
 
 # Define start command based on SERVICE env var
 CMD if [ "$SERVICE" = "bot" ]; then \

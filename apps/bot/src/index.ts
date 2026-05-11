@@ -127,79 +127,53 @@ if (domain && domain.includes('${RAILWAY_PUBLIC_DOMAIN}')) {
     console.log('[Startup] Domain after interpolation replacement:', domain);
   } else {
     console.warn("[Startup] Warning: RAILWAY_PUBLIC_DOMAIN is not set but was referenced in WEBHOOK_DOMAIN. Falling back to Long Polling.");
-    domain = undefined; // falsy domain disables webhooks
   }
 }
 
-if (domain) {
-  // Production: Use Webhooks
-  console.log('[Startup] Selected Mode: Webhooks');
-  const port = Number(process.env.PORT) || 3000;
+// FORCE LONG POLLING FOR DEBUGGING RAILWAY HEALTHCHECKS
+console.log('[Startup] FORCING LONG POLLING FOR DEBUGGING RAILWAY HEALTHCHECKS');
+
+const port = Number(process.env.PORT) || 3000;
+const app = require('express')();
+
+// Railway Healthcheck Route
+app.get('*', (req: any, res: any) => {
+  console.log(`[HTTP] ${req.method} ${req.url}`);
+  res.status(200).send('TonBet Bot Dummy Server is running perfectly.');
+});
+
+const server = app.listen(port, '0.0.0.0', () => {
+  const addr = server.address();
+  console.log(`[Startup] Dummy Express server running on port ${port}`);
+  console.log(`[Startup] ACTUAL BOUND ADDRESS:`, addr);
   
-  const webhookHandler = bot.webhookCallback('/api/webhook');
-  
-  const url = `${domain}/api/webhook`;
-  bot.telegram.setWebhook(url).then(() => {
-    console.log(`[Webhook] Successfully set to ${url}`);
+  // Start bot in long polling mode after server is up
+  bot.launch().then(() => {
+    console.log('[Startup] Bot started in LONG POLLING mode.');
   }).catch(err => {
-    console.error('[Webhook] Failed to set webhook. Full error:', err);
+    console.error('[Startup] Failed to start bot in long polling mode:', err);
   });
+});
 
-  const app = require('express')();
+// Ensure proxy keep-alive doesn't drop connections
+server.keepAliveTimeout = 65000;
+server.headersTimeout = 66000;
 
-  // Railway Healthcheck Route
-  app.get('/', (req: any, res: any) => {
-    res.status(200).send('TonBet Bot Webhook Server is running perfectly.');
-  });
-  
-  app.get('/health', (req: any, res: any) => {
-    res.status(200).send('OK');
-  });
+// We explicitly delete the webhook to ensure Telegram sends messages via long polling
+bot.telegram.deleteWebhook().then(() => {
+  console.log('[Webhook] Successfully deleted webhook for long polling.');
+}).catch(err => {
+  console.error('[Webhook] Failed to delete webhook:', err);
+});
 
-  // Telegraf Webhook Route
-  app.use(bot.webhookCallback('/api/webhook'));
-
-  const server = app.listen(port, '0.0.0.0', () => {
-    const addr = server.address();
-    console.log(`[Startup] Bot running via Express Webhooks on port ${port}`);
-    console.log(`[Startup] ACTUAL BOUND ADDRESS:`, addr);
-  });
-  
-  // Ensure proxy keep-alive doesn't drop connections
-  server.keepAliveTimeout = 65000;
-  server.headersTimeout = 66000;
-} else {
-  // Local Development: Use Long Polling
-  // Railway requires a port to be bound even if we are polling, otherwise it throws 502
-  const port = Number(process.env.PORT) || 3000;
-  const server = http.createServer((req, res) => {
-    console.log(`[HTTP Fallback] ${req.method} ${req.url}`);
-    res.writeHead(200);
-    res.end('TonBet Bot is running via Long Polling');
-  });
-  server.listen(port, '0.0.0.0', () => {
-    console.log(`Fallback web server running on port ${port} (Explicit IPv4 0.0.0.0)`);
-  });
-
-  bot.telegram.deleteWebhook().then(() => {
-    bot.launch().then(() => {
-      console.log('Bot is running via Long Polling...');
-    }).catch(err => {
-      console.error('Failed to launch bot via polling:', err.message);
-    });
-  }).catch(err => {
-    console.error('Failed to delete webhook:', err.message);
-  });
-}
-
-// Enable graceful stop
+// Graceful stop
 const stopBot = (signal: string) => {
   try {
     bot.stop(signal);
   } catch (err) {
     // Telegraf throws if stop() is called without launch()
-    console.log(`Bot stopped gracefully (${signal})`);
   }
+  console.log(`Bot stopped gracefully (${signal})`);
   process.exit(0);
 };
 

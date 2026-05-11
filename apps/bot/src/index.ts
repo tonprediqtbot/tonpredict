@@ -150,5 +150,15 @@ if (domain) {
 }
 
 // Enable graceful stop
-process.once('SIGINT', () => bot.stop('SIGINT'));
-process.once('SIGTERM', () => bot.stop('SIGTERM'));
+const stopBot = (signal: string) => {
+  try {
+    bot.stop(signal);
+  } catch (err) {
+    // Telegraf throws if stop() is called without launch()
+    console.log(`Bot stopped gracefully (${signal})`);
+  }
+  process.exit(0);
+};
+
+process.once('SIGINT', () => stopBot('SIGINT'));
+process.once('SIGTERM', () => stopBot('SIGTERM'));

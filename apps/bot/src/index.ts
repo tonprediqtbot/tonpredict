@@ -12,6 +12,14 @@ if (!token) {
 }
 
 const bot = new Telegraf(token);
+
+process.on('uncaughtException', (err) => {
+  console.error('[FATAL] Uncaught Exception:', err);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('[FATAL] Unhandled Rejection at:', promise, 'reason:', reason);
+});
 const redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
 redis.on('error', (err) => {
   console.error('Redis connection error:', err.message);
@@ -146,9 +154,17 @@ if (domain) {
     res.end('TonBet Bot Webhook Server is running perfectly.');
   });
   
-  server.listen({ port, host: '::', ipv6Only: false }, () => {
+  // Ensure proxy keep-alive doesn't drop connections (required for Railway Edge Router)
+  server.keepAliveTimeout = 65000;
+  server.headersTimeout = 66000;
+
+  server.on('error', (err) => {
+    console.error('[HTTP ERROR]', err);
+  });
+  
+  server.listen(port, '0.0.0.0', () => {
     const addr = server.address();
-    console.log(`[Startup] Bot running via Webhooks on port ${port} (Dual Stack :: ipv6Only:false)`);
+    console.log(`[Startup] Bot running via Webhooks on port ${port} (Explicit IPv4 0.0.0.0)`);
     console.log(`[Startup] ACTUAL BOUND ADDRESS:`, addr);
   });
 } else {

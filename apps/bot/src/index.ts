@@ -128,17 +128,28 @@ if (domain) {
   console.log('[Startup] Selected Mode: Webhooks');
   const port = Number(process.env.PORT) || 3000;
   
-  console.log(`[Webhook] Launching Telegraf built-in webhook server on port ${port}...`);
-  bot.launch({
-    webhook: {
-      domain: domain,
-      port: port,
-      hookPath: '/api/webhook'
-    }
-  }).then(() => {
-    console.log(`[Startup] Bot successfully running via Telegraf Webhooks on port ${port}`);
+  const webhookHandler = bot.webhookCallback('/api/webhook');
+  
+  const url = `${domain}/api/webhook`;
+  bot.telegram.setWebhook(url).then(() => {
+    console.log(`[Webhook] Successfully set to ${url}`);
   }).catch(err => {
-    console.error(`[Startup Error] Failed to launch bot:`, err);
+    console.error('[Webhook] Failed to set webhook. Full error:', err);
+  });
+
+  const server = http.createServer((req, res) => {
+    console.log(`[HTTP] ${req.method} ${req.url}`);
+    if (req.url === '/api/webhook' && req.method === 'POST') {
+      return webhookHandler(req, res);
+    }
+    res.writeHead(200, { 'Content-Type': 'text/plain' });
+    res.end('TonBet Bot Webhook Server is running perfectly.');
+  });
+  
+  server.listen({ port, host: '::', ipv6Only: false }, () => {
+    const addr = server.address();
+    console.log(`[Startup] Bot running via Webhooks on port ${port} (Dual Stack :: ipv6Only:false)`);
+    console.log(`[Startup] ACTUAL BOUND ADDRESS:`, addr);
   });
 } else {
   // Local Development: Use Long Polling

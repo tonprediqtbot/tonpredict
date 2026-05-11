@@ -124,6 +124,8 @@ if (domain) {
     const url = `${domain}/api/webhook`;
     bot.telegram.setWebhook(url).then(() => {
       console.log(`Webhook set to ${url}`);
+    }).catch(err => {
+      console.error('Failed to set webhook:', err.message);
     });
 
     const server = createServer((req, res) => {

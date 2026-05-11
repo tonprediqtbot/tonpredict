@@ -115,7 +115,7 @@ if (domain && domain.includes('${RAILWAY_PUBLIC_DOMAIN}')) {
 const express = require('express');
 const app = express();
 
-// Log every incoming HTTP request for debugging Railway Healthchecks
+// Log every incoming HTTP request for debugging
 app.use((req: any, res: any, next: any) => {
   console.log(`[HTTP] ${req.method} ${req.url}`);
   next();
@@ -126,8 +126,13 @@ app.use(express.json());
 // Handle Webhooks
 app.use(bot.webhookCallback('/api/webhook'));
 
-// Catch-all route to guarantee 200 OK for ANY healthcheck path configured in Railway
-app.all('*', (req: any, res: any) => {
+// Explicit root route
+app.get('/', (_: any, res: any) => {
+  res.status(200).send('TonBet Bot Running');
+});
+
+// Catch-all route for any other Healthchecks (Express 5 compatible)
+app.use((req: any, res: any) => {
   res.status(200).send('TonBet Bot Running OK');
 });
 

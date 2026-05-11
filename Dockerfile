@@ -26,8 +26,8 @@ RUN apk add --no-cache libc6-compat openssl
 COPY --from=builder /app .
 
 # Expose port for Railway Edge Router
-EXPOSE 3000
-ENV PORT=3000
+EXPOSE 8080
+ENV PORT=8080
 
 # Define start command based on SERVICE env var
 CMD if [ "$SERVICE" = "bot" ]; then \

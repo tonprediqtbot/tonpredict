@@ -98,11 +98,11 @@ export default function MarketDetail() {
       <div className="grid grid-cols-2 gap-4">
         <div className="glass-panel rounded-2xl p-4 text-center">
           <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Total Volume</p>
-          <p className="mt-1 text-lg font-bold text-foreground">{parseFloat(market.totalVolume).toFixed(2)} TON</p>
+          <p className="mt-1 text-lg font-bold text-foreground">{parseFloat(market.totalVolume.toString()).toFixed(2)} TON</p>
         </div>
         <div className="glass-panel rounded-2xl p-4 text-center">
           <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Liquidity</p>
-          <p className="mt-1 text-lg font-bold text-neon-purple">{parseFloat(market.liquidity).toFixed(2)} TON</p>
+          <p className="mt-1 text-lg font-bold text-neon-purple">{parseFloat(market.liquidity.toString()).toFixed(2)} TON</p>
         </div>
       </div>
 
@@ -156,7 +156,7 @@ export default function MarketDetail() {
                   </div>
                   <div className="text-right">
                     <p className={`text-xs font-bold ${bet.side === "YES" ? "text-neon-green" : "text-red-500"}`}>
-                      {parseFloat(bet.amount).toFixed(2)} TON
+                      {parseFloat(bet.amount.toString()).toFixed(2)} TON
                     </p>
                     <p className="text-[10px] text-muted-foreground font-bold">
                       {formatDistanceToNow(new Date(bet.created_at), { addSuffix: true })}

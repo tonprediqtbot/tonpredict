@@ -17,9 +17,9 @@ interface BetModalProps {
   market: {
     id: string;
     title: string;
-    yesPool: number | string;
-    noPool: number | string;
-    liquidity: number | string;
+    yesPool: any;
+    noPool: any;
+    liquidity: any;
   };
   side: "YES" | "NO";
 }

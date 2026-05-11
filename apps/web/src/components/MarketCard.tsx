@@ -41,7 +41,7 @@ export function MarketCard({ market, index = 0 }: MarketCardProps) {
         </div>
         <div className="flex items-center gap-1 text-[10px] font-black text-neon-blue uppercase tracking-widest">
           <TrendingUp className="h-3 w-3" />
-          {parseFloat(market.totalVolume).toFixed(2)} TON
+          {parseFloat(market.totalVolume.toString()).toFixed(2)} TON
         </div>
       </div>
 

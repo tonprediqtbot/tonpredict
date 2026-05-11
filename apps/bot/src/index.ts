@@ -115,31 +115,36 @@ if (domain && domain.includes('${RAILWAY_PUBLIC_DOMAIN}')) {
 const express = require('express');
 const app = express();
 
-// Log every incoming HTTP request for debugging
+app.use(express.json());
+
+// Log every request
 app.use((req: any, res: any, next: any) => {
-  console.log(`[HTTP] ${req.method} ${req.url}`);
+  console.log(`[Request] ${req.method} ${req.url}`);
   next();
 });
 
-app.use(express.json());
+// Explicit health check for Railway
+app.get('/health', (_: any, res: any) => {
+  res.status(200).send('OK');
+});
 
-// Handle Webhooks
-app.use(bot.webhookCallback('/api/webhook'));
+// Webhook endpoint
+app.post('/api/webhook', bot.webhookCallback('/api/webhook'));
 
-// Explicit root route
+// Root endpoint
 app.get('/', (_: any, res: any) => {
   res.status(200).send('TonBet Bot Running');
 });
 
-// Catch-all route for any other Healthchecks (Express 5 compatible)
+// Catch-all
 app.use((req: any, res: any) => {
-  res.status(200).send('TonBet Bot Running OK');
+  res.status(200).send('OK');
 });
 
-const server = app.listen(process.env.PORT || 8080, '::', () => {
-  console.log(`[Startup] Express server bound to port ${process.env.PORT || 8080} (Dual-Stack IPv6/IPv4)`);
+const port = process.env.PORT || 8080;
+app.listen(port, '0.0.0.0', () => {
+  console.log(`[Final] Bot Server is fully initialized and listening on port ${port}`);
 });
 
-// Required for Railway Edge Proxy
-server.keepAliveTimeout = 65000;
-server.headersTimeout = 66000;
+// Remove manual timeouts for a moment to see if Express 5 defaults work better on Railway
+

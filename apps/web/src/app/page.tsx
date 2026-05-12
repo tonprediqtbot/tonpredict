@@ -148,6 +148,11 @@ export default function Home() {
           </div>
         )}
       </div>
+      <div className="pt-8 pb-4 text-center">
+        <p className="text-[8px] font-bold text-muted-foreground uppercase tracking-[0.2em] opacity-30">
+          TonBet v1.0.1-PROD-REALTIME
+        </p>
+      </div>
     </div>
   );
 }

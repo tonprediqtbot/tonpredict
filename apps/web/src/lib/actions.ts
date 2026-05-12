@@ -109,3 +109,26 @@ export async function createMarket(data: any) {
     return { success: false, error: error.message };
   }
 }
+
+export async function getGlobalStats() {
+  try {
+    const totalVolume = await prisma.market.aggregate({
+      _sum: { totalVolume: true }
+    });
+    const activeMarkets = await prisma.market.count({
+      where: { resolved: false }
+    });
+    const totalUsers = await prisma.user.count();
+
+    return {
+      success: true,
+      data: {
+        totalVolume: totalVolume._sum.totalVolume || 0,
+        activeMarkets,
+        totalUsers
+      }
+    };
+  } catch (error: any) {
+    return { success: false, error: "Failed to load stats" };
+  }
+}

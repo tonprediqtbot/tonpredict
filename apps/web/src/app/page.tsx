@@ -3,7 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { TrendingUp, Zap, Trophy } from "lucide-react";
-import { getMarkets } from "@/lib/actions";
+import { getMarkets, getGlobalStats } from "@/lib/actions";
 import { MarketCard } from "@/components/MarketCard";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
@@ -52,6 +52,14 @@ export default function Home() {
       return res.data || [];
     },
   });
+  
+  const { data: stats } = useQuery({
+    queryKey: ["global-stats"],
+    queryFn: async () => {
+      const res = await getGlobalStats();
+      return res.data;
+    },
+  });
 
   return (
     <div className="space-y-8">
@@ -89,11 +97,13 @@ export default function Home() {
       <div className="grid grid-cols-2 gap-4">
         <div className="glass-panel rounded-3xl p-5 border border-white/5 bg-white/5">
           <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Global Volume</span>
-          <p className="text-xl font-black text-neon-green mt-1">4.2M TON</p>
+          <p className="text-xl font-black text-neon-green mt-1">
+            {stats?.totalVolume ? parseFloat(stats.totalVolume.toString()).toLocaleString() : "0"} TON
+          </p>
         </div>
         <div className="glass-panel rounded-3xl p-5 border border-white/5 bg-white/5">
           <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Active Markets</span>
-          <p className="text-xl font-black text-neon-blue mt-1">{markets?.length || 0}+</p>
+          <p className="text-xl font-black text-neon-blue mt-1">{stats?.activeMarkets || 0}</p>
         </div>
       </div>
 

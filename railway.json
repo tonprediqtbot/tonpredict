@@ -4,7 +4,7 @@
     "builder": "DOCKERFILE"
   },
   "deploy": {
-    "startCommand": "npx prisma db push --schema packages/database/prisma/schema.prisma --accept-data-loss && npx prisma db seed --schema packages/database/prisma/schema.prisma && cd apps/web && npm run start -- -p ${PORT:-8080} -H 0.0.0.0",
+    "startCommand": "sh start.sh",
     "healthcheckPath": "/health",
     "healthcheckTimeout": 300,
     "restartPolicyType": "ON_FAILURE"

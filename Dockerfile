@@ -29,14 +29,12 @@ COPY --from=builder /app .
 EXPOSE 8080
 ENV PORT=8080
 
-# Define start command based on SERVICE env var
+# Default to web service if SERVICE is not provided
 CMD if [ "$SERVICE" = "bot" ]; then \
       cd apps/bot && exec node dist/index.js; \
-    elif [ "$SERVICE" = "web" ]; then \
-      cd apps/web && exec node_modules/.bin/next start; \
     elif [ "$SERVICE" = "admin" ]; then \
-      cd apps/admin && exec node_modules/.bin/next start; \
+      cd apps/admin && exec node_modules/.bin/next start -p ${PORT:-8080}; \
     else \
-      echo "Unknown service: $SERVICE"; exit 1; \
+      cd apps/web && exec node_modules/.bin/next start -p ${PORT:-8080} -H 0.0.0.0; \
     fi
 

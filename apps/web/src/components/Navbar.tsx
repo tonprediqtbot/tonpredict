@@ -17,10 +17,12 @@ export function Navbar() {
     <header className="sticky top-0 z-40 w-full border-b border-white/5 bg-background/60 backdrop-blur-md max-w-md mx-auto px-4 py-3">
       <div className="flex items-center justify-between">
         <Link href="/" className="flex items-center gap-2">
-          <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-neon-blue to-neon-purple p-[1px]">
-            <div className="flex h-full w-full items-center justify-center rounded-[7px] bg-background">
-              <span className="text-lg font-bold text-foreground">T</span>
-            </div>
+          <div className="relative h-8 w-8 overflow-hidden rounded-lg">
+            <img 
+              src="/logo.png" 
+              alt="TonBet Logo" 
+              className="h-full w-full object-cover"
+            />
           </div>
           <span className="text-lg font-bold tracking-tight">TonBet</span>
         </Link>
